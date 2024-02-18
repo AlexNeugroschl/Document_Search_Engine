@@ -9,6 +9,9 @@ import edu.yu.cs.com1320.project.stage1.Document;
 
 public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage1.DocumentStore{
     HashMap<URI, Document> map;
+    public DocumentStoreImpl(){
+        this.map = new HashMap<>();
+    }
     /**
      * set the given key-value metadata pair for the document at the given uri
      *
@@ -18,11 +21,8 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage1.Docum
      * @return the old value, or null if there was no previous value
      * @throws IllegalArgumentException if the uri is null or blank, if there is no document stored at that uri, or if the key is null or blank
      */
-    public DocumentStoreImpl(){
-        this.map = new HashMap<>();
-    }
     public String setMetadata(URI uri, String key, String value){
-        if(uri == null || uri.toString().isBlank() || key.isBlank() || key == null || map.get(uri) == null){
+        if(uri == null || uri.toString().isBlank() || key == null || key.isBlank() || map.get(uri) == null){
             throw new IllegalArgumentException("DocumentStore setMetaData error");
         }
         return this.map.get(uri).setMetadataValue(key, value);
@@ -37,7 +37,7 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage1.Docum
      * @throws IllegalArgumentException if the uri is null or blank, if there is no document stored at that uri, or if the key is null or blank
      */
     public String getMetadata(URI uri, String key){
-        if(uri == null || uri.toString().isBlank() || key.isBlank() || key == null || map.get(uri) == null){
+        if(uri == null || uri.toString().isBlank() || key == null || key.isBlank() || map.get(uri) == null){
             throw new IllegalArgumentException("DocumentStore getMetaData error");
         }
         return this.map.get(uri).getMetadataValue(key);
@@ -101,10 +101,12 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage1.Docum
         try{
             deleted = this.put(input, url, DocumentFormat.BINARY);
         }catch(IOException e){
-            if(deleted == 0){
                 return false;
-            }
         }
-        return true;
+        if(deleted == 0){
+            return false;
+        }else {
+            return true;
+        }
     }
 }
