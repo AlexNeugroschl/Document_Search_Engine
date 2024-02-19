@@ -17,6 +17,7 @@ public class DocumentImpl implements edu.yu.cs.com1320.project.stage1.Document{
         this.map = new HashMap<>();
         this.txt = txt;
         this.uri = uri;
+        this.binaryData = new byte[0];
     }
     public DocumentImpl(URI uri, byte[] binaryData){
         if(uri == null || uri.toString().isBlank()|| binaryData == null || binaryData.length == 0){
