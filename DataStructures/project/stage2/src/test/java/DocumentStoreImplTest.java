@@ -1,7 +1,7 @@
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
-import edu.yu.cs.com1320.project.stage1.impl.*;
-import edu.yu.cs.com1320.project.stage1.DocumentStore;
+import edu.yu.cs.com1320.project.stage2.impl.*;
+import edu.yu.cs.com1320.project.stage2.DocumentStore;
 import java.io.StringBufferInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -410,7 +410,6 @@ public class DocumentStoreImplTest {
         DocumentStore.DocumentFormat format = DocumentStore.DocumentFormat.TXT;
         DocumentImpl doc = new DocumentImpl(uri, text);
         int docHash = doc.hashCode();
-        System.out.println(docHash);
-        assertEquals(docHash, -1632964362);
+        assertEquals(docHash, 1632964363);
     }
 }

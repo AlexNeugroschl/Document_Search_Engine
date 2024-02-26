@@ -1,12 +1,12 @@
-package edu.yu.cs.com1320.project.stage1.impl;
-
+package edu.yu.cs.com1320.project.stage2.impl;
+import  edu.yu.cs.com1320.project.impl.HashTableImpl;
+import edu.yu.cs.com1320.project.HashTable;
 import java.net.URI;
-import java.util.HashMap;
 import java.util.Arrays;
 
 
-public class DocumentImpl implements edu.yu.cs.com1320.project.stage1.Document{
-    HashMap<String, String> map;
+public class DocumentImpl implements edu.yu.cs.com1320.project.stage2.Document{
+    HashTableImpl<String, String> table;
     String txt;
     byte[] binaryData;
     URI uri;
@@ -14,18 +14,18 @@ public class DocumentImpl implements edu.yu.cs.com1320.project.stage1.Document{
         if(uri == null || uri.toString().isBlank()|| txt == null || txt.isBlank()){
             throw new IllegalArgumentException("DocumentImpl constructor 1");
         }
-        this.map = new HashMap<>();
+        this.table = new HashTableImpl<>();
         this.txt = txt;
         this.uri = uri;
-        //this.binaryData = new byte[0];
     }
     public DocumentImpl(URI uri, byte[] binaryData){
         if(uri == null || uri.toString().isBlank()|| binaryData == null || binaryData.length == 0){
             throw new IllegalArgumentException("DocumentImpl constructor 2");
         }
-        this.map = new HashMap<>();
+        this.table = new HashTableImpl<>();
         this.binaryData = binaryData;
         this.uri = uri;
+        this.txt = null;
     }
     /**
      * @param key   key of document metadata to store a value for
@@ -37,7 +37,7 @@ public class DocumentImpl implements edu.yu.cs.com1320.project.stage1.Document{
         if(key == null || key.isBlank()){
             throw new IllegalArgumentException();
         }
-        return this.map.put(key, value);
+        return this.table.put(key, value);
     }
 
     /**
@@ -49,15 +49,16 @@ public class DocumentImpl implements edu.yu.cs.com1320.project.stage1.Document{
         if(key == null || key.isEmpty()){
             throw new IllegalArgumentException();
         }
-        return this.map.get(key);
+        return this.table.get(key);
     }
 
     /**
      * @return a COPY of the metadata saved in this document
      */
-    public HashMap<String, String> getMetadata(){
-        HashMap<String, String> mapCopy = new HashMap<>(this.map);
-        return mapCopy;
+    public HashTable<String, String> getMetadata(){
+        HashTableImpl<String, String> tableCopy = new HashTableImpl<>();
+
+        return tableCopy;
     }
 
     /**
@@ -85,7 +86,7 @@ public class DocumentImpl implements edu.yu.cs.com1320.project.stage1.Document{
         int result = uri.hashCode();
         result = 31 * result + (txt != null ? txt.hashCode() : 0);
         result = 31 * result + Arrays.hashCode(binaryData);
-        return result;
+        return Math.abs(result);
     }
     @Override
     public boolean equals(Object obj){

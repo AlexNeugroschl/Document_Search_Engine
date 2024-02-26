@@ -7,7 +7,7 @@ import java.util.Arrays;
 
 
 import static org.junit.jupiter.api.Assertions.*;
-import edu.yu.cs.com1320.project.stage1.impl.DocumentImpl;
+import edu.yu.cs.com1320.project.stage2.impl.DocumentImpl;
 public class DocumentImplTest {
     @Test
     public void docConstructor1Works(){
@@ -36,11 +36,10 @@ public class DocumentImplTest {
         URI uri = new URI("https://www.geeksforgeeks.org/url-class-java-examples/");
         String text = "This is the text of the doc";
         DocumentImpl doc = new DocumentImpl(uri, text);
-        byte[] binaryData = new byte[0];
         int result = uri.hashCode();
         result = 31 * result + (text != null ? text.hashCode() : 0);
-        result = 31 * result + Arrays.hashCode(binaryData);
-        assertEquals(true, doc.hashCode() == result);
+        result = 31 * result;
+        assertEquals(true, doc.hashCode() == Math.abs(result));
     }
     @Test
     public void docConstructor1equals() throws URISyntaxException, UnsupportedEncodingException {
