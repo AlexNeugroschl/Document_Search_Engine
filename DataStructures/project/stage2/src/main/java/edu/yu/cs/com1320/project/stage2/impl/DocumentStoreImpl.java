@@ -68,9 +68,11 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage2.Docum
                 }
             }
             byte[] bytes = input.readAllBytes();
-            edu.yu.cs.com1320.project.stage2.impl.DocumentImpl doc;
+            input.close();
+            String text = new String(bytes);
+            DocumentImpl doc;
             if(format == DocumentFormat.TXT){
-                doc = new DocumentImpl(uri, new String(bytes));
+                doc = new DocumentImpl(uri, text);
             }else{
                 doc = new DocumentImpl(uri, bytes);
             }

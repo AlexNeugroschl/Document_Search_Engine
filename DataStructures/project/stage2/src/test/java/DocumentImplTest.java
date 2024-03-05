@@ -50,4 +50,14 @@ public class DocumentImplTest {
         DocumentImpl doc2 = new DocumentImpl(uri, text2);
         assertEquals(true, doc1.equals(doc2));
     }
+    @Test
+    public void getMetadataValueTest() throws URISyntaxException, UnsupportedEncodingException{
+        URI uri = new URI("https://www.geeksforgeeks.org/url-class-java-examples/");
+        String text = "This is the text of the doc";
+        DocumentImpl doc = new DocumentImpl(uri, text);
+        doc.setMetadataValue("Author","Myself");
+        doc.setMetadataValue("Illustrator","Also Me");
+        doc.setMetadataValue("Reader","Also Also Me");
+        assertEquals("Also Me", doc.getMetadataValue("Illustrator"));
+    }
 }

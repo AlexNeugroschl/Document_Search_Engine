@@ -3,6 +3,7 @@ import  edu.yu.cs.com1320.project.impl.HashTableImpl;
 import edu.yu.cs.com1320.project.HashTable;
 import java.net.URI;
 import java.util.Arrays;
+import java.util.Set;
 
 
 public class DocumentImpl implements edu.yu.cs.com1320.project.stage2.Document{
@@ -57,7 +58,10 @@ public class DocumentImpl implements edu.yu.cs.com1320.project.stage2.Document{
      */
     public HashTable<String, String> getMetadata(){
         HashTableImpl<String, String> tableCopy = new HashTableImpl<>();
-
+        Set<String> keys = this.table.keySet();
+        for(String key : keys){
+            tableCopy.put(key, this.getMetadataValue(key));
+        }
         return tableCopy;
     }
 

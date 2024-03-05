@@ -25,17 +25,21 @@ public class HashTableImpl<Key, Value> implements HashTable<Key, Value>{
             if(head == null){
               head = new Node(new Entry(k, v));
               return null;
+            }else if(head.contents.key.equals(k)) {
+                Value temp = (Value) head.contents.value;
+                head.contents.value = v;
+                return temp;
             }else{
                 Node iteration = head;
-                while(iteration != null){
-                    if(iteration.contents.key.equals(k)){
-                        Value temp = (Value) iteration.contents.value;
-                        iteration.contents.value = (Value) v;
+                while(iteration.next != null){
+                    if(iteration.next.contents.key.equals(k)){
+                        Value temp = (Value) iteration.next.contents.value;
+                        iteration.next.contents.value = v;
                         return temp;
                     }
                    iteration = iteration.next;
                 }
-                iteration = new Node(new Entry(k, v));
+                iteration.next = new Node(new Entry(k, v));
                 return null;
             }
         }
@@ -46,12 +50,12 @@ public class HashTableImpl<Key, Value> implements HashTable<Key, Value>{
             if(head.contents.key.equals(k)){
                 return (Value) head.contents.value;
             }else{
-                Node next = head.next;
-                while(next != null && !next.contents.key.equals(k)) {
-                    next = next.next;
-                    if(next.contents.key.equals(k)){
-                        return (Value) next.contents.value;
+                Node iteration = head.next;
+                while(iteration != null) {
+                    if(iteration.contents.key.equals(k)){
+                        return (Value) iteration.contents.value;
                     }
+                    iteration = iteration.next;
                 }
             }
             return null;
@@ -65,9 +69,9 @@ public class HashTableImpl<Key, Value> implements HashTable<Key, Value>{
                 this.head = head.next;
                 return temp;
             }else{
-                Node iteration = head.next;
+                Node iteration = head;
                 while(iteration != null){
-                    if(iteration.next.contents.key.equals(k)){
+                    if(iteration.next != null && iteration.next.contents.key.equals(k)){
                         Value temp = (Value) iteration.next.contents.value;
                         iteration.next = iteration.next.next;
                         return temp;
@@ -81,7 +85,7 @@ public class HashTableImpl<Key, Value> implements HashTable<Key, Value>{
         public Entry[] getAll() {
             Entry[] entries = new Entry[10];
             Node iteration = head;
-            int arrayLength = 1;
+            int arrayLength = 0;
             while (iteration != null) {
                 entries[arrayLength] = iteration.contents;
                 iteration = iteration.next;

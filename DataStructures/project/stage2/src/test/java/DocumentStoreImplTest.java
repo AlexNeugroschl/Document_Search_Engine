@@ -282,22 +282,6 @@ public class DocumentStoreImplTest {
             ;
         });
     }
-   /*
-    @Test
-    public void putTestIO()throws URISyntaxException, UnsupportedEncodingException, IOException {
-        DocumentStoreImpl store = new DocumentStoreImpl();
-        URI uri = new URI("https://www.geeksforgeeks.org/url-class-java-examples/");
-        URI badURI = URI.create("");
-        String text = "This is the text of the doc";
-        byte[] bytes = text.getBytes();
-        StringBufferInputStream input = new StringBufferInputStream("Whatever");
-        DocumentStore.DocumentFormat format = DocumentStore.DocumentFormat.TXT;
-        assertThrows(IOException.class, () -> {
-            store.put(input, uri, format);
-            ;
-        });
-    }
-    */
    @Test
    public void putTestReturns0()throws URISyntaxException, UnsupportedEncodingException, IOException {
        DocumentStoreImpl store = new DocumentStoreImpl();
@@ -330,7 +314,6 @@ public class DocumentStoreImplTest {
     public void putTestReturnsHash2()throws URISyntaxException, UnsupportedEncodingException, IOException {
         DocumentStoreImpl store = new DocumentStoreImpl();
         URI uri = new URI("https://www.geeksforgeeks.org/url-class-java-examples/");
-        URI badURI = URI.create("");
         String text = "This is the text of the doc";
         byte[] bytes = text.getBytes();
         ByteArrayInputStream input = new ByteArrayInputStream(bytes);
@@ -339,7 +322,8 @@ public class DocumentStoreImplTest {
         ByteArrayInputStream otherInput = new ByteArrayInputStream(otherBytes);
         DocumentStore.DocumentFormat format = DocumentStore.DocumentFormat.TXT;
         store.put(input, uri, format);
-        DocumentImpl doc = new DocumentImpl(uri, text);
+        DocumentImpl doc = (DocumentImpl) store.get(uri);
+        //DocumentImpl doc = new DocumentImpl(uri, text);
         int docHash = doc.hashCode();
         assertEquals(docHash, store.put(otherInput, uri, format));
     }
@@ -347,7 +331,6 @@ public class DocumentStoreImplTest {
     public void putTestInputNull1()throws URISyntaxException, UnsupportedEncodingException, IOException {
         DocumentStoreImpl store = new DocumentStoreImpl();
         URI uri = new URI("https://www.geeksforgeeks.org/url-class-java-examples/");
-        URI badURI = URI.create("");
         String text = "This is the text of the doc";
         byte[] bytes = text.getBytes();
         ByteArrayInputStream input = new ByteArrayInputStream(bytes);
@@ -403,6 +386,19 @@ public class DocumentStoreImplTest {
         assertEquals(false, store.delete(uri));
     }
     @Test
+    public void deleteTest3()throws URISyntaxException, UnsupportedEncodingException, IOException {
+        DocumentStoreImpl store = new DocumentStoreImpl();
+        URI uri = new URI("https://www.geeksforgeeks.org/url-class-java-examples/");
+        String text = "This is the text of the doc";
+        byte[] bytes = text.getBytes();
+        ByteArrayInputStream input = new ByteArrayInputStream(bytes);
+        ByteArrayInputStream otherInput = null;
+        DocumentStore.DocumentFormat format = DocumentStore.DocumentFormat.TXT;
+        store.put(input, uri, format);
+        store.put(otherInput, uri, format);
+        assertEquals(null, store.get(uri));
+    }
+    @Test
     public void properHashTest() throws URISyntaxException, UnsupportedEncodingException, IOException{
         DocumentStoreImpl store = new DocumentStoreImpl();
         URI uri = new URI("https://www.geeksforgeeks.org/url-class-java-examples/");
@@ -411,5 +407,19 @@ public class DocumentStoreImplTest {
         DocumentImpl doc = new DocumentImpl(uri, text);
         int docHash = doc.hashCode();
         assertEquals(docHash, 1632964363);
+    }
+    @Test
+    public void setandgetMetadataTest() throws URISyntaxException, UnsupportedEncodingException, IOException {
+        DocumentStoreImpl store = new DocumentStoreImpl();
+        URI uri = new URI("https://www.geeksforgeeks.org/url-class-java-examples/");
+        String text = "This is the text of the doc";
+        byte[] bytes = text.getBytes();
+        ByteArrayInputStream input = new ByteArrayInputStream(bytes);
+        DocumentStore.DocumentFormat format = DocumentStore.DocumentFormat.TXT;
+        store.put(input, uri, format);
+        store.setMetadata(uri, "key1", "value1");
+        store.setMetadata(uri, "key2", "value2");
+        DocumentImpl doc = (DocumentImpl)store.get(uri);
+        assertEquals("value1", doc.getMetadataValue("key1"));
     }
 }
