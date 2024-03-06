@@ -1,19 +1,21 @@
 package edu.yu.cs.com1320.project.stage3.impl;
 import edu.yu.cs.com1320.project.stage3.impl.DocumentImpl;
-import  edu.yu.cs.com1320.project.impl.HashTableImpl;
-
+import edu.yu.cs.com1320.project.impl.HashTableImpl;
+import edu.yu.cs.com1320.project.impl.StackImpl;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-
 import edu.yu.cs.com1320.project.stage3.Document;
+import edu.yu.cs.com1320.project.undo.Command;
 
 public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage3.DocumentStore{
     HashTableImpl<URI, Document> table;
+    StackImpl<Command> commandStack;
     public DocumentStoreImpl(){
             this.table = new HashTableImpl<>();
+            this.commandStack = new StackImpl<>();
     }
     /**
      * set the given key-value metadata pair for the document at the given uri
@@ -28,6 +30,10 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage3.Docum
         if(uri == null || uri.toString().isBlank() || key == null || key.isBlank() || table.get(uri) == null){
             throw new IllegalArgumentException("DocumentStore setMetaData error");
         }
+        String oldValue = getMetadata(uri, key);
+        commandStack.push(new Command(uri, uri -> {
+            setMetadata(uri, key, oldValue);
+        }));
         return this.table.get(uri).setMetadataValue(key, value);
     }
 
@@ -78,8 +84,14 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage3.Docum
             }
             Document original = table.put(uri, doc);
             if(original == null){
+                commandStack.push(new Command(uri, uri -> {
+                    this.delete(uri);
+                }));
                 return 0;
             }else{
+                commandStack.push(new Command(uri, uri -> {
+                    this.table.put(uri, original);
+                }));
                 return original.hashCode();
             }
         }catch(IOException e){
@@ -111,6 +123,9 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage3.Docum
         if(deleted == 0){
             return false;
         }else {
+            commandStack.push(new Command(url, url -> {
+                this.table.put(url, deleted);
+            }));
             return true;
         }
     }
@@ -118,12 +133,37 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage3.Docum
      * undo the last put or delete command
      * @throws IllegalStateException if there are no actions to be undone, i.e. the command stack is empty
      */
-    void undo() throws IllegalStateException;
+    public void undo() throws IllegalStateException{
+        Command topUndo = commandStack.pop();
+        if(topUndo == null){
+            throw new IllegalStateException("Stack is empty: undo()");
+        }else{
+            topUndo.undo();
+        }
+    }
 
     /**
      * undo the last put or delete that was done with the given URI as its key
      * @param url
      * @throws IllegalStateException if there are no actions on the command stack for the given URI
      */
-    void undo(URI url) throws IllegalStateException;
+    public void undo(URI url) throws IllegalStateException{
+        StackImpl<Command> temp = new StackImpl<>();
+        Boolean undid = false;
+        while(undid == false) {
+            Command currentUndo = commandStack.pop();
+            if (currentUndo == null || currentUndo.getUri().equals(url)) {
+                for (int i = 0; i < temp.size(); i++) {
+                    commandStack.push(temp.pop());
+                }
+                if (currentUndo == null) {
+                    throw new IllegalStateException("No URI in commandStack: undo(URI url)");
+                } else {
+                    currentUndo.undo();
+                    undid = true;
+                }
+            }
+            temp.push(currentUndo);
+        }
+    }
 }

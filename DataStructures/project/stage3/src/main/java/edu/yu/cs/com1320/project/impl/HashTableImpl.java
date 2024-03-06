@@ -92,11 +92,11 @@ public class HashTableImpl<Key, Value> implements HashTable<Key, Value>{
                 arrayLength++;
                 if (arrayLength == entries.length) {
                     Entry[] temp = (Entry[]) new Entry[entries.length];
-                    for (int i = 0; i < temp.length; i++) {
+                    for(int i = 0; i < temp.length; i++) {
                         temp[i] = entries[i];
                     }
                     entries = (Entry[]) new Entry[temp.length * 2];
-                    for (int i = 0; i < temp.length; i++) {
+                    for(int i = 0; i < temp.length; i++) {
                         entries[i] = temp[i];
                     }
                 }
@@ -140,6 +140,9 @@ public class HashTableImpl<Key, Value> implements HashTable<Key, Value>{
         if(v == null){
             return (Value) table[arrayIndex].delete(k);
         }else{
+            if(this.size() >= table.length * 4){
+                doubleArray();
+            }
             return (Value) table[arrayIndex].insert(k, v);
         }
     }
@@ -184,10 +187,10 @@ public class HashTableImpl<Key, Value> implements HashTable<Key, Value>{
      */
     public Collection<Value> values(){
         ArrayList<Value> values = new ArrayList<>();
-        for(int i = 0; i < table.length; i++){
-            Entry[] entries = table[i].getAll();
-            for(Entry thing : entries){
-                if(thing!= null) {
+        for (List<?> list : table) {
+            Entry[] entries = list.getAll();
+            for (Entry thing : entries) {
+                if (thing != null) {
                     values.add((Value) thing.value);
                 }
             }
@@ -202,6 +205,22 @@ public class HashTableImpl<Key, Value> implements HashTable<Key, Value>{
         return this.keySet().size();
     }
     private int hashFunction(Key key){
-        return (key.hashCode() & 0x7fffffff) % 5;
+        return (key.hashCode() & 0x7fffffff) % table.length;
+    }
+    private void doubleArray(){
+        List<?>[] newTable = new List[table.length * 2];
+        for(int i = 0; i < newTable.length; i++){
+            this.table[i] = new List<>("This should be fine");
+        }
+        for(List list : table){
+            Entry[] entries = list.getAll();
+            for(Entry entry : entries){
+                if(entry != null){
+                    int arrayIndex = hashFunction((Key) entry.key);
+                    newTable[arrayIndex].insert((Key) entry.key, (Value) entry.value);
+                }
+            }
+        }
+        this.table = newTable;
     }
 }
