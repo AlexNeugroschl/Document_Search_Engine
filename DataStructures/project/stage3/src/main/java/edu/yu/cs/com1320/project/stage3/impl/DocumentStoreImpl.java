@@ -31,8 +31,8 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage3.Docum
             throw new IllegalArgumentException("DocumentStore setMetaData error");
         }
         String oldValue = getMetadata(uri, key);
-        commandStack.push(new Command(uri, uri -> {
-            setMetadata(uri, key, oldValue);
+        commandStack.push(new Command(uri, url -> {
+            setMetadata(url, key, oldValue);
         }));
         return this.table.get(uri).setMetadataValue(key, value);
     }
@@ -84,13 +84,13 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage3.Docum
             }
             Document original = table.put(uri, doc);
             if(original == null){
-                commandStack.push(new Command(uri, uri -> {
-                    this.delete(uri);
+                commandStack.push(new Command(uri, url -> {
+                    this.delete(url);
                 }));
                 return 0;
             }else{
-                commandStack.push(new Command(uri, uri -> {
-                    this.table.put(uri, original);
+                commandStack.push(new Command(uri, url -> {
+                    this.table.put(url, original);
                 }));
                 return original.hashCode();
             }
@@ -115,7 +115,9 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage3.Docum
     public boolean delete(URI url){
         InputStream input = null;
         int deleted = 0;
+        Document docToDelete;
         try{
+            docToDelete = this.table.get(url);
             deleted = this.put(input, url, DocumentFormat.BINARY);
         }catch(IOException e){
                 return false;
@@ -123,8 +125,8 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage3.Docum
         if(deleted == 0){
             return false;
         }else {
-            commandStack.push(new Command(url, url -> {
-                this.table.put(url, deleted);
+            commandStack.push(new Command(url, uri -> {
+                this.table.put(uri, docToDelete);
             }));
             return true;
         }

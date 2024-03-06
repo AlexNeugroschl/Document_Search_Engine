@@ -210,7 +210,7 @@ public class HashTableImpl<Key, Value> implements HashTable<Key, Value>{
     private void doubleArray(){
         List<?>[] newTable = new List[table.length * 2];
         for(int i = 0; i < newTable.length; i++){
-            this.table[i] = new List<>("This should be fine");
+            newTable[i] = new List<>("This should be fine");
         }
         for(List list : table){
             Entry[] entries = list.getAll();
