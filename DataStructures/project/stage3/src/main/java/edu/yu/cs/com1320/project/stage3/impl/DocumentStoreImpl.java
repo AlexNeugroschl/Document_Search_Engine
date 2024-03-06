@@ -155,7 +155,7 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage3.Docum
         while(undid == false) {
             Command currentUndo = commandStack.pop();
             if (currentUndo == null || currentUndo.getUri().equals(url)) {
-                for (int i = 0; i < temp.size(); i++) {
+                while(temp.size() > 0) {
                     commandStack.push(temp.pop());
                 }
                 if (currentUndo == null) {
