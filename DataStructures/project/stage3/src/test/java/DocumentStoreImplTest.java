@@ -11,7 +11,7 @@ import java.net.URISyntaxException;
 
 public class DocumentStoreImplTest {
     @Test
-    public void monsterTest() throws URISyntaxException, UnsupportedEncodingException, IOException {
+    public void initialTest() throws URISyntaxException, UnsupportedEncodingException, IOException {
         DocumentStoreImpl store = new DocumentStoreImpl();
         URI uri = new URI("https://www.geeksforgeeks.org/url-class-java-examples/");
         String text = "This is the text of the doc";
@@ -24,7 +24,7 @@ public class DocumentStoreImplTest {
         assertEquals(true, store.getMetadata(uri, "key1") == store.getMetadata(uri, "key2"));
     }
     @Test
-    public void monsterTest2() throws URISyntaxException, UnsupportedEncodingException, IOException {
+    public void initialTest2() throws URISyntaxException, UnsupportedEncodingException, IOException {
         DocumentStoreImpl store = new DocumentStoreImpl();
         URI uri = new URI("https://www.geeksforgeeks.org/url-class-java-examples/");
         String text = "This is the text of the doc";
@@ -421,5 +421,237 @@ public class DocumentStoreImplTest {
         store.setMetadata(uri, "key2", "value2");
         DocumentImpl doc = (DocumentImpl)store.get(uri);
         assertEquals("value1", doc.getMetadataValue("key1"));
+    }
+    @Test
+    public void simpleUndoPut() throws URISyntaxException, UnsupportedEncodingException, IOException {
+        DocumentStoreImpl store = new DocumentStoreImpl();
+        URI uri = new URI("https://www.geeksforgeeks.org/url-class-java-examples/");
+        String text = "This is the text of the doc";
+        byte[] bytes = text.getBytes();
+        ByteArrayInputStream input = new ByteArrayInputStream(bytes);
+        DocumentStore.DocumentFormat format = DocumentStore.DocumentFormat.TXT;
+        store.put(input, uri, format);
+        store.undo();
+        assertEquals(null, store.get(uri));
+    }
+    @Test
+    public void harderUndoPut() throws URISyntaxException, UnsupportedEncodingException, IOException {
+        DocumentStoreImpl store = new DocumentStoreImpl();
+        URI uri1 = new URI("www.test1.com");
+        URI uri2 = new URI("www.test2.com");
+        URI uri3 = new URI("www.test3.com");
+        URI uri4 = new URI("www.test4.com");
+        URI uri5 = new URI("www.test5.com");
+        String text = "This is the text of the doc";
+        byte[] bytes = text.getBytes();
+        ByteArrayInputStream input = new ByteArrayInputStream(bytes);
+        DocumentStore.DocumentFormat format = DocumentStore.DocumentFormat.TXT;
+        store.put(input, uri1, format);
+        input.reset();
+        store.put(input, uri2, format);
+        input.reset();
+        store.put(input, uri3, format);
+        input.reset();
+        store.put(input, uri4, format);
+        input.reset();
+        store.put(input, uri5, format);
+        store.undo(uri4);
+        assertEquals(null, store.get(uri4));
+    }
+    @Test
+    public void harderUndoPut2() throws URISyntaxException, UnsupportedEncodingException, IOException {
+        DocumentStoreImpl store = new DocumentStoreImpl();
+        URI uri1 = new URI("www.test1.com");
+        URI uri2 = new URI("www.test2.com");
+        URI uri3 = new URI("www.test3.com");
+        URI uri4 = new URI("www.test4.com");
+        URI uri5 = new URI("www.test5.com");
+        String text = "This is the text of the doc";
+        byte[] bytes = text.getBytes();
+        ByteArrayInputStream input = new ByteArrayInputStream(bytes);
+        DocumentStore.DocumentFormat format = DocumentStore.DocumentFormat.TXT;
+        store.put(input, uri1, format);
+        input.reset();
+        store.put(input, uri2, format);
+        input.reset();
+        store.put(input, uri3, format);
+        input.reset();
+        store.put(input, uri4, format);
+        input.reset();
+        store.put(input, uri5, format);
+        store.undo(uri4);
+        assertEquals("This is the text of the doc", store.get(uri5).getDocumentTxt());
+    }
+    @Test
+    public void undoPutReplace() throws URISyntaxException, UnsupportedEncodingException, IOException {
+        DocumentStoreImpl store = new DocumentStoreImpl();
+        URI uri1 = new URI("www.test1.com");
+        URI uri2 = new URI("www.test2.com");
+        URI uri3 = new URI("www.test3.com");
+        URI uri4 = new URI("www.test4.com");
+        URI uri5 = new URI("www.test5.com");
+        String text = "This is the text of the doc";
+        String otherText = "OTHER STRING TEXT";
+        byte[] bytes = text.getBytes();
+        byte[] otherBytes = otherText.getBytes();
+        ByteArrayInputStream input = new ByteArrayInputStream(bytes);
+        ByteArrayInputStream otherInput = new ByteArrayInputStream(otherBytes);
+        DocumentStore.DocumentFormat format = DocumentStore.DocumentFormat.TXT;
+        store.put(input, uri1, format);
+        input.reset();
+        store.put(input, uri2, format);
+        input.reset();
+        store.put(input, uri3, format);
+        input.reset();
+        store.put(input, uri4, format);
+        input.reset();
+        store.put(input, uri5, format);
+        input.reset();
+        store.put(otherInput, uri4, format);
+        store.undo(uri4);
+        assertEquals("This is the text of the doc", store.get(uri4).getDocumentTxt());
+    }
+    @Test
+    public void undoPutReplace2() throws URISyntaxException, UnsupportedEncodingException, IOException {
+        DocumentStoreImpl store = new DocumentStoreImpl();
+        URI uri1 = new URI("www.test1.com");
+        URI uri2 = new URI("www.test2.com");
+        URI uri3 = new URI("www.test3.com");
+        URI uri4 = new URI("www.test4.com");
+        URI uri5 = new URI("www.test5.com");
+        String text = "This is the text of the doc";
+        String otherText = "OTHER STRING TEXT";
+        byte[] bytes = text.getBytes();
+        byte[] otherBytes = otherText.getBytes();
+        ByteArrayInputStream input = new ByteArrayInputStream(bytes);
+        ByteArrayInputStream otherInput = new ByteArrayInputStream(otherBytes);
+        DocumentStore.DocumentFormat format = DocumentStore.DocumentFormat.TXT;
+        store.put(input, uri1, format);
+        input.reset();
+        store.put(input, uri2, format);
+        input.reset();
+        store.put(input, uri3, format);
+        input.reset();
+        store.put(otherInput, uri4, format);
+        input.reset();
+        store.put(input, uri5, format);
+        input.reset();
+        store.put(input, uri4, format);
+        store.undo(uri4);
+        assertEquals("OTHER STRING TEXT", store.get(uri4).getDocumentTxt());
+    }
+    @Test
+    public void undoDelete() throws URISyntaxException, UnsupportedEncodingException, IOException {
+        DocumentStoreImpl store = new DocumentStoreImpl();
+        URI uri1 = new URI("www.test1.com");
+        URI uri2 = new URI("www.test2.com");
+        URI uri3 = new URI("www.test3.com");
+        URI uri4 = new URI("www.test4.com");
+        URI uri5 = new URI("www.test5.com");
+        String text = "This is the text of the doc";
+        String otherText = "OTHER STRING TEXT";
+        byte[] bytes = text.getBytes();
+        byte[] otherBytes = otherText.getBytes();
+        ByteArrayInputStream input = new ByteArrayInputStream(bytes);
+        ByteArrayInputStream otherInput = new ByteArrayInputStream(otherBytes);
+        DocumentStore.DocumentFormat format = DocumentStore.DocumentFormat.TXT;
+        store.put(otherInput, uri1, format);
+        otherInput.reset();
+        store.put(otherInput, uri2, format);
+        otherInput.reset();
+        store.put(input, uri3, format);
+        input.reset();
+        store.delete(uri3);
+        store.put(otherInput, uri4, format);
+        otherInput.reset();
+        store.put(otherInput, uri5, format);
+        store.undo(uri3);
+        assertEquals("This is the text of the doc", store.get(uri3).getDocumentTxt());
+    }
+    @Test
+    public void undoSetMetadata1() throws URISyntaxException, UnsupportedEncodingException, IOException {
+        DocumentStoreImpl store = new DocumentStoreImpl();
+        URI uri1 = new URI("www.test1.com");
+        URI uri2 = new URI("www.test2.com");
+        URI uri3 = new URI("www.test3.com");
+        URI uri4 = new URI("www.test4.com");
+        URI uri5 = new URI("www.test5.com");
+        String text = "This is the text of the doc";
+        String otherText = "OTHER STRING TEXT";
+        byte[] bytes = text.getBytes();
+        byte[] otherBytes = otherText.getBytes();
+        ByteArrayInputStream input = new ByteArrayInputStream(bytes);
+        ByteArrayInputStream otherInput = new ByteArrayInputStream(otherBytes);
+        DocumentStore.DocumentFormat format = DocumentStore.DocumentFormat.TXT;
+        store.put(input, uri1, format);
+        input.reset();
+        store.put(input, uri2, format);
+        input.reset();
+        store.put(input, uri3, format);
+        store.setMetadata(uri3, "Author", "Me");
+        store.setMetadata(uri3, "Author", "It wasn't really me");
+        input.reset();
+        store.put(input, uri4, format);
+        input.reset();
+        store.put(input, uri5, format);
+        store.undo(uri3);
+        assertEquals("Me", store.getMetadata(uri3, "Author"));
+    }
+    @Test
+    public void undoSetMetadata2() throws URISyntaxException, UnsupportedEncodingException, IOException {
+        DocumentStoreImpl store = new DocumentStoreImpl();
+        URI uri1 = new URI("www.test1.com");
+        URI uri2 = new URI("www.test2.com");
+        URI uri3 = new URI("www.test3.com");
+        URI uri4 = new URI("www.test4.com");
+        URI uri5 = new URI("www.test5.com");
+        String text = "This is the text of the doc";
+        String otherText = "OTHER STRING TEXT";
+        byte[] bytes = text.getBytes();
+        byte[] otherBytes = otherText.getBytes();
+        ByteArrayInputStream input = new ByteArrayInputStream(bytes);
+        ByteArrayInputStream otherInput = new ByteArrayInputStream(otherBytes);
+        DocumentStore.DocumentFormat format = DocumentStore.DocumentFormat.TXT;
+        store.put(input, uri1, format);
+        input.reset();
+        store.put(input, uri2, format);
+        input.reset();
+        store.put(input, uri3, format);
+        store.setMetadata(uri3, "Author", "Me");
+        input.reset();
+        store.put(input, uri4, format);
+        input.reset();
+        store.put(input, uri5, format);
+        store.undo(uri3);
+        assertEquals(null, store.getMetadata(uri3, "Author"));
+    }
+    @Test
+    public void undoStackIntact() throws URISyntaxException, UnsupportedEncodingException, IOException {
+        DocumentStoreImpl store = new DocumentStoreImpl();
+        URI uri1 = new URI("www.test1.com");
+        URI uri2 = new URI("www.test2.com");
+        URI uri3 = new URI("www.test3.com");
+        URI uri4 = new URI("www.test4.com");
+        URI uri5 = new URI("www.test5.com");
+        String text = "This is the text of the doc";
+        String otherText = "OTHER STRING TEXT";
+        byte[] bytes = text.getBytes();
+        byte[] otherBytes = otherText.getBytes();
+        ByteArrayInputStream input = new ByteArrayInputStream(bytes);
+        ByteArrayInputStream otherInput = new ByteArrayInputStream(otherBytes);
+        DocumentStore.DocumentFormat format = DocumentStore.DocumentFormat.TXT;
+        store.put(input, uri1, format);
+        input.reset();
+        store.put(input, uri2, format);
+        input.reset();
+        store.put(input, uri3, format);
+        store.setMetadata(uri3, "Author", "Me");
+        input.reset();
+        store.put(input, uri4, format);
+        input.reset();
+        store.put(input, uri5, format);
+        store.undo(uri3);
+        store.undo();
+        assertEquals(null, store.get(uri5));
     }
 }

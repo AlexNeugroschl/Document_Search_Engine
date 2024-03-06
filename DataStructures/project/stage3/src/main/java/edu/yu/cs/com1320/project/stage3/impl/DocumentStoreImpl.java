@@ -32,9 +32,9 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage3.Docum
         }
         String oldValue = getMetadata(uri, key);
         commandStack.push(new Command(uri, url -> {
-            setMetadata(url, key, oldValue);
+            this.get(url).setMetadataValue(key, oldValue);
         }));
-        return this.table.get(uri).setMetadataValue(key, value);
+        return this.get(uri).setMetadataValue(key, value);
     }
 
     /**
@@ -49,7 +49,7 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage3.Docum
         if(uri == null || uri.toString().isBlank() || key == null || key.isBlank() || table.get(uri) == null){
             throw new IllegalArgumentException("DocumentStore getMetaData error");
         }
-        return this.table.get(uri).getMetadataValue(key);
+        return this.get(uri).getMetadataValue(key);
     }
 
     /**
@@ -85,7 +85,7 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage3.Docum
             Document original = table.put(uri, doc);
             if(original == null){
                 commandStack.push(new Command(uri, url -> {
-                    this.delete(url);
+                    this.table.put(url, null);
                 }));
                 return 0;
             }else{
