@@ -37,4 +37,16 @@ public class StackImplTest {
         stack.pop();
         assertEquals(true, stack.pop() == 4 && stack.size() == 3);
     }
+    @Test
+    public void nullTest1(){
+        StackImpl<Integer> stack = new StackImpl<>();
+        assertEquals(null, stack.pop());
+    }
+    @Test
+    public void nullTest2(){
+        StackImpl<Integer> stack = new StackImpl<>();
+        assertThrows(IllegalArgumentException.class,()->{
+            stack.push(null);;
+        });
+    }
 }

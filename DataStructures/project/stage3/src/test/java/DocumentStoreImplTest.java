@@ -683,4 +683,32 @@ public class DocumentStoreImplTest {
         store.undo(uri4);
         assertEquals(null, store.get(uri4));
     }
+    @Test
+    public void undoStackIntact3() throws URISyntaxException, UnsupportedEncodingException, IOException {
+        DocumentStoreImpl store = new DocumentStoreImpl();
+        URI uri1 = new URI("www.test1.com");
+        URI uri2 = new URI("www.test2.com");
+        URI uri3 = new URI("www.test3.com");
+        URI uri4 = new URI("www.test4.com");
+        URI uri5 = new URI("www.test5.com");
+        String text = "This is the text of the doc";
+        String otherText = "OTHER STRING TEXT";
+        byte[] bytes = text.getBytes();
+        byte[] otherBytes = otherText.getBytes();
+        ByteArrayInputStream input = new ByteArrayInputStream(bytes);
+        ByteArrayInputStream otherInput = new ByteArrayInputStream(otherBytes);
+        DocumentStore.DocumentFormat format = DocumentStore.DocumentFormat.TXT;
+        store.put(input, uri1, format);
+        input.reset();
+        store.put(input, uri2, format);
+        input.reset();
+        store.put(input, uri3, format);
+        input.reset();
+        store.put(input, uri4, format);
+        input.reset();
+        store.put(input, uri5, format);
+        store.undo(uri2);
+        store.undo(uri4);
+        assertEquals("www.test3.com", store.get(uri3).getKey().toString());
+    }
 }

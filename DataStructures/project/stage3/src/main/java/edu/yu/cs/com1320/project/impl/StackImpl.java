@@ -22,6 +22,9 @@ public class StackImpl<T> implements Stack<T> {
      * @param element object to add to the Stack
      */
     public void push(T element) {
+        if (element == null) {
+            throw new IllegalArgumentException("Stack cannot take null value");
+        }
         Node newTop = new Node(element);
         newTop.next = this.topOfStack;
         this.topOfStack = newTop;
