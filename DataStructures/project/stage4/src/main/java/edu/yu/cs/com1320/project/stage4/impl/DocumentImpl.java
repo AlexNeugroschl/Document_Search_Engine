@@ -3,6 +3,7 @@ import  edu.yu.cs.com1320.project.impl.HashTableImpl;
 import edu.yu.cs.com1320.project.HashTable;
 import java.net.URI;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
 
 
@@ -109,10 +110,24 @@ public class DocumentImpl implements edu.yu.cs.com1320.project.stage4.Document{
      * @param word
      * @return the number of times the given words appears in the document. If it's a binary document, return 0.
      */
-    int wordCount(String word);
+    public int wordCount(String word){
+        int wordCount = 0;
+        String[] words = txt.split(" ");
+        for(String docword : words){
+            if(docword.equals(word)){
+                wordCount++;
+            }
+        }
+        return wordCount;
+    }
 
     /**
      * @return all the words that appear in the document
      */
-    Set<String> getWords();
+    public Set<String> getWords(){
+        Set<String> uniqueWords = new HashSet<>();
+        String[] words = txt.split(" ");
+        uniqueWords.addAll(Arrays.asList(words));
+        return uniqueWords;
+    }
 }
