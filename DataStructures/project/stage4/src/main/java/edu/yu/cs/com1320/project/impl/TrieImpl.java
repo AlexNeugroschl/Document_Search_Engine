@@ -4,7 +4,7 @@ import edu.yu.cs.com1320.project.Trie;
 import java.util.*;
 
 public class TrieImpl<Value> implements Trie<Value> {
-    private static final int alphabetSize = 256;
+    private static final int alphabetSize = 62;
     private Node<Value> root;
     public class Node<Value>{
         protected HashSet<Value> vals;
