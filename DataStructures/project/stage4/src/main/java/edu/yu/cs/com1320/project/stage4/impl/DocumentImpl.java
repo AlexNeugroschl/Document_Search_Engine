@@ -5,11 +5,11 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
-
+import java.util.HashMap;
 
 public class DocumentImpl implements edu.yu.cs.com1320.project.stage4.Document{
     HashTableImpl<String, String> metaDataTable;
-    HashTableImpl<String, Integer> wordCountTable;
+    HashMap<String, Integer> wordCountTable;
     String txt;
     byte[] binaryData;
     URI uri;
@@ -18,7 +18,7 @@ public class DocumentImpl implements edu.yu.cs.com1320.project.stage4.Document{
             throw new IllegalArgumentException("DocumentImpl constructor 1");
         }
         this.metaDataTable = new HashTableImpl<>();
-        this.wordCountTable = new HashTableImpl<>();
+        this.wordCountTable = new HashMap<>();
         this.txt = txt;
         this.uri = uri;
         String[] words = txt.split(" ");

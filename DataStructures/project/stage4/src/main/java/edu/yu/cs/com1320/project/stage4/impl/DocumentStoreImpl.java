@@ -7,19 +7,22 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import edu.yu.cs.com1320.project.stage4.Document;
 import edu.yu.cs.com1320.project.undo.Command;
+import edu.yu.cs.com1320.project.impl.TrieImpl;
 
 public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage4.DocumentStore{
     HashTableImpl<URI, Document> table;
     StackImpl<Command> commandStack;
+    TrieImpl<Document> docsText;
     public DocumentStoreImpl(){
             this.table = new HashTableImpl<>();
             this.commandStack = new StackImpl<>();
+            this.docsText = new TrieImpl<>();
     }
     /**
      * set the given key-value metadata pair for the document at the given uri
@@ -83,6 +86,10 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage4.Docum
             DocumentImpl doc;
             if(format == DocumentFormat.TXT){
                 doc = new DocumentImpl(uri, text);
+                String[] words = (String[]) doc.getWords().toArray();
+                for(String word : words){
+                    this.docsText.put(word, doc);
+                }
             }else{
                 doc = new DocumentImpl(uri, bytes);
             }
@@ -181,7 +188,9 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage4.Docum
      * @param keyword
      * @return a List of the matches. If there are no matches, return an empty list.
      */
-    List<Document> search(String keyword);
+    public List<Document> search(String keyword){
+        return docsText.getSorted(keyword, new DocumentComparator(keyword));
+    }
 
     /**
      * Retrieve all documents that contain text which starts with the given prefix
@@ -255,4 +264,24 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage4.Docum
      * @return a Set of URIs of the documents that were deleted.
      */
     Set<URI> deleteAllWithPrefixAndMetadata(String keywordPrefix,Map<String,String> keysValues);
+    public class DocumentComparator implements Comparator<Document> {
+        private String keyword;
+
+        public DocumentComparator(String keyword) {
+            this.keyword = keyword;
+        }
+
+        @Override
+        public int compare(Document doc1, Document doc2) {
+            int doc1Count = doc1.wordCount(this.keyword);
+            int doc2Count = doc2.wordCount(this.keyword);
+            if (doc1Count < doc2Count) {
+                return -1;
+            }
+            if (doc1Count == doc2Count) {
+                return 0;
+            }
+            return 1;
+        }
+    }
 }
