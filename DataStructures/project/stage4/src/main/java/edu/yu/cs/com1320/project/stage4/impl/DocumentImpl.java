@@ -8,7 +8,8 @@ import java.util.Set;
 
 
 public class DocumentImpl implements edu.yu.cs.com1320.project.stage4.Document{
-    HashTableImpl<String, String> table;
+    HashTableImpl<String, String> metaDataTable;
+    HashTableImpl<String, Integer> wordCountTable;
     String txt;
     byte[] binaryData;
     URI uri;
@@ -16,15 +17,26 @@ public class DocumentImpl implements edu.yu.cs.com1320.project.stage4.Document{
         if(uri == null || uri.toString().isBlank()|| txt == null || txt.isBlank()){
             throw new IllegalArgumentException("DocumentImpl constructor 1");
         }
-        this.table = new HashTableImpl<>();
+        this.metaDataTable = new HashTableImpl<>();
+        this.wordCountTable = new HashTableImpl<>();
         this.txt = txt;
         this.uri = uri;
+        String[] words = txt.split(" ");
+        for(String word : words){
+            char[] letters = word.toCharArray();
+            for(char letter : letters){
+                if((letter < 47) || (letter > 57 && letter < 65) || (letter > 90 && letter < 97) || (letter > 122)){
+                    letter = ' ';
+                }
+            }
+            wordCountTable.put(new String(letters).replace(" ", ""), wordCountTable.get(new String(letters).replace(" ", "")));
+        }
     }
     public DocumentImpl(URI uri, byte[] binaryData){
         if(uri == null || uri.toString().isBlank()|| binaryData == null || binaryData.length == 0){
             throw new IllegalArgumentException("DocumentImpl constructor 2");
         }
-        this.table = new HashTableImpl<>();
+        this.metaDataTable = new HashTableImpl<>();
         this.binaryData = binaryData;
         this.uri = uri;
         this.txt = null;
@@ -39,7 +51,7 @@ public class DocumentImpl implements edu.yu.cs.com1320.project.stage4.Document{
         if(key == null || key.isBlank()){
             throw new IllegalArgumentException();
         }
-        return this.table.put(key, value);
+        return this.metaDataTable.put(key, value);
     }
 
     /**
@@ -51,7 +63,7 @@ public class DocumentImpl implements edu.yu.cs.com1320.project.stage4.Document{
         if(key == null || key.isEmpty()){
             throw new IllegalArgumentException();
         }
-        return this.table.get(key);
+        return this.metaDataTable.get(key);
     }
 
     /**
@@ -59,7 +71,7 @@ public class DocumentImpl implements edu.yu.cs.com1320.project.stage4.Document{
      */
     public HashTable<String, String> getMetadata(){
         HashTableImpl<String, String> tableCopy = new HashTableImpl<>();
-        Set<String> keys = this.table.keySet();
+        Set<String> keys = this.metaDataTable.keySet();
         for(String key : keys){
             tableCopy.put(key, this.getMetadataValue(key));
         }
@@ -111,23 +123,13 @@ public class DocumentImpl implements edu.yu.cs.com1320.project.stage4.Document{
      * @return the number of times the given words appears in the document. If it's a binary document, return 0.
      */
     public int wordCount(String word){
-        int wordCount = 0;
-        String[] words = txt.split(" ");
-        for(String docword : words){
-            if(docword.equals(word)){
-                wordCount++;
-            }
-        }
-        return wordCount;
+        return wordCountTable == null ? 0 : wordCountTable.get(word);
     }
 
     /**
      * @return all the words that appear in the document
      */
     public Set<String> getWords(){
-        Set<String> uniqueWords = new HashSet<>();
-        String[] words = txt.split(" ");
-        uniqueWords.addAll(Arrays.asList(words));
-        return uniqueWords;
+        return (Set<String>) wordCountTable.keySet();
     }
 }
