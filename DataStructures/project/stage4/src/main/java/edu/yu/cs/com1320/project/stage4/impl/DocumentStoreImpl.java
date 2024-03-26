@@ -7,10 +7,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+
 import edu.yu.cs.com1320.project.stage4.Document;
 import edu.yu.cs.com1320.project.undo.Command;
 import edu.yu.cs.com1320.project.impl.TrieImpl;
@@ -199,7 +197,9 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage4.Docum
      * @param keywordPrefix
      * @return a List of the matches. If there are no matches, return an empty list.
      */
-    List<Document> searchByPrefix(String keywordPrefix);
+    public List<Document> searchByPrefix(String keywordPrefix){
+        return this.docsText.getAllWithPrefixSorted(keywordPrefix, new DocumentComparator(keywordPrefix));
+    }
 
     /**
      * Completely remove any trace of any document which contains the given keyword
@@ -207,7 +207,19 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage4.Docum
      * @param keyword
      * @return a Set of URIs of the documents that were deleted.
      */
-    Set<URI> deleteAll(String keyword);
+    public Set<URI> deleteAll(String keyword){
+        Set<Document> toDelete = docsText.get(keyword);
+        Set<URI> deletedURIs = new HashSet<>();
+        for(Document doc : toDelete){
+            deletedURIs.add(doc.getKey());
+            this.table.put(doc.getKey(), null);
+            Set<String> words = doc.getWords();
+            for(String word : words){
+                docsText.delete(word, doc);
+            }
+        }
+        return deletedURIs;
+    }
 
     /**
      * Completely remove any trace of any document which contains a word that has the given prefix

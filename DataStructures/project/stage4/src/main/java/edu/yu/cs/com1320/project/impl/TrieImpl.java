@@ -4,7 +4,7 @@ import edu.yu.cs.com1320.project.Trie;
 import java.util.*;
 
 public class TrieImpl<Value> implements Trie<Value> {
-    private static final int alphabetSize = 62;
+    private static final int alphabetSize = 256;
     private Node<Value> root;
     public class Node<Value>{
         protected HashSet<Value> vals;
@@ -16,11 +16,7 @@ public class TrieImpl<Value> implements Trie<Value> {
      * @param val
      */
     public void put(String key, Value val){
-        if (val == null) {
-            this.deleteAll(key);
-        }else{
-            this.root = put(this.root, key, val, 0);
-        }
+        this.root = put(this.root, key, val, 0);
     }
     private Node put(Node x, String key, Value val, int d){
         if(x == null){
@@ -44,10 +40,10 @@ public class TrieImpl<Value> implements Trie<Value> {
      */
     public List<Value> getSorted(String key, Comparator<Value> comparator){
         Set<Value> x = this.get(key);
-        LinkedList<Value> list = new LinkedList<>();
+        List<Value> list = new LinkedList<>();
         list.addAll(x);
         list.sort(comparator);
-        return (List<Value>) list;
+        return list;
     }
 
     /**
@@ -115,6 +111,7 @@ public class TrieImpl<Value> implements Trie<Value> {
         for(Node letter : endOfPrefix.links){
             letter = null;
         }
+        deleteExcess(this.root, prefix, 0);
         return set;
     }
 
@@ -127,6 +124,7 @@ public class TrieImpl<Value> implements Trie<Value> {
         Set<Value> set = this.get(key);
         Node deleted = this.getNode(this.root, key, 0);
         deleted.vals.clear();
+        deleteExcess(this.root, key, 0);
         return set;
     }
 
@@ -138,6 +136,20 @@ public class TrieImpl<Value> implements Trie<Value> {
      */
     public Value delete(String key, Value val){
         Node node = this.getNode(this.root, key, 0);
+        if(node.vals.size() == 1 && node.vals.contains(val)){
+            node.vals.remove(val);
+            deleteExcess(this.root, key, 0);
+            return val;
+        }
         return node.vals.remove(val) ? val : null;
+    }
+    private void deleteExcess(Node node, String key, int d){
+        char c = key.charAt(d);
+        if (d < key.length()-1){
+            deleteExcess(node.links[c], key, d++);;
+        }
+        if(node.links[c].vals.isEmpty() && node.links[c].links.length == 0){
+            node.links[c] = null;
+        }
     }
 }
