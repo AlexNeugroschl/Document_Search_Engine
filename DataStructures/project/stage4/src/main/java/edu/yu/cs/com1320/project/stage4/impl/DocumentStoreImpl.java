@@ -17,10 +17,12 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage4.Docum
     HashTableImpl<URI, Document> table;
     StackImpl<Command> commandStack;
     TrieImpl<Document> docsText;
+    TrieImpl<Document> metaData;
     public DocumentStoreImpl(){
             this.table = new HashTableImpl<>();
             this.commandStack = new StackImpl<>();
             this.docsText = new TrieImpl<>();
+            this.metaData = new TrieImpl<>();
     }
     /**
      * set the given key-value metadata pair for the document at the given uri
@@ -39,6 +41,11 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage4.Docum
         commandStack.push(new Command(uri, url -> {
             this.get(url).setMetadataValue(key, oldValue);
         }));
+        if(value != null) {
+            this.metaData.put(key, this.get(uri));
+        }else{
+            this.metaData.delete(key, this.get(uri));
+        }
         return this.get(uri).setMetadataValue(key, value);
     }
 
@@ -208,17 +215,7 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage4.Docum
      * @return a Set of URIs of the documents that were deleted.
      */
     public Set<URI> deleteAll(String keyword){
-        Set<Document> toDelete = docsText.get(keyword);
-        Set<URI> deletedURIs = new HashSet<>();
-        for(Document doc : toDelete){
-            deletedURIs.add(doc.getKey());
-            this.table.put(doc.getKey(), null);
-            Set<String> words = doc.getWords();
-            for(String word : words){
-                docsText.delete(word, doc);
-            }
-        }
-        return deletedURIs;
+        return deleteDocuments(new LinkedList<>(docsText.get(keyword)));
     }
 
     /**
@@ -227,13 +224,29 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage4.Docum
      * @param keywordPrefix
      * @return a Set of URIs of the documents that were deleted.
      */
-    Set<URI> deleteAllWithPrefix(String keywordPrefix);
+    public Set<URI> deleteAllWithPrefix(String keywordPrefix){
+        return deleteDocuments(docsText.getAllWithPrefixSorted(keywordPrefix, new DocumentComparator(keywordPrefix)));
+    }
 
     /**
      * @param keysValues metadata key-value pairs to search for
      * @return a List of all documents whose metadata contains ALL OF the given values for the given keys. If no documents contain all the given key-value pairs, return an empty list.
      */
-    List<Document> searchByMetadata(Map<String,String> keysValues);
+    public List<Document> searchByMetadata(Map<String,String> keysValues){
+        Set<String> keys = keysValues.keySet();
+        Set<Document> docs;
+        for(String key : keys){
+            if(docs == null){
+                docs = metaData.get(key);
+            }
+            for(Document doc : docs){
+                if(!doc.getMetadataValue(key).equals(keysValues.get(key))){
+                    docs.remove(doc);
+                }
+            }
+        }
+        return new LinkedList<>(docs);
+    }
 
     /**
      * Retrieve all documents whose text contains the given keyword AND which has the given key-value pairs in its metadata
@@ -243,7 +256,16 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage4.Docum
      * @param keysValues
      * @return a List of the matches. If there are no matches, return an empty list.
      */
-    List<Document> searchByKeywordAndMetadata(String keyword, Map<String,String> keysValues);
+    public List<Document> searchByKeywordAndMetadata(String keyword, Map<String,String> keysValues){
+        List<Document> matchingMetaData = this.searchByMetadata(keysValues);
+        List<Document> matchingText = new LinkedList<Document>(this.metaData.get(keyword));
+        for(Document doc : matchingMetaData){
+            if(!matchingText.contains(doc)){
+                matchingMetaData.remove(doc);
+            }
+        }
+        return matchingMetaData;
+    }
 
     /**
      * Retrieve all documents that contain text which starts with the given prefix AND which has the given key-value pairs in its metadata
@@ -252,14 +274,25 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage4.Docum
      * @param keywordPrefix
      * @return a List of the matches. If there are no matches, return an empty list.
      */
-    List<Document> searchByPrefixAndMetadata(String keywordPrefix,Map<String,String> keysValues);
+    public List<Document> searchByPrefixAndMetadata(String keywordPrefix,Map<String,String> keysValues){
+        List<Document> matchingMetaData = this.searchByMetadata(keysValues);
+        List<Document> matchingPrefixes = docsText.getAllWithPrefixSorted(keywordPrefix, new DocumentComparator(keywordPrefix));
+        for(Document doc : matchingMetaData){
+            if(!matchingPrefixes.contains(doc)){
+                matchingMetaData.remove(doc);
+            }
+        }
+        return matchingMetaData;
+    }
 
     /**
      * Completely remove any trace of any document which has the given key-value pairs in its metadata
      * Search is CASE SENSITIVE.
      * @return a Set of URIs of the documents that were deleted.
      */
-    Set<URI> deleteAllWithMetadata(Map<String,String> keysValues);
+    public Set<URI> deleteAllWithMetadata(Map<String,String> keysValues){ // need to delete from both tries
+        return deleteDocuments(this.searchByMetadata(keysValues));
+    }
 
     /**
      * Completely remove any trace of any document which contains the given keyword AND which has the given key-value pairs in its metadata
@@ -267,7 +300,9 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage4.Docum
      * @param keyword
      * @return a Set of URIs of the documents that were deleted.
      */
-    Set<URI> deleteAllWithKeywordAndMetadata(String keyword,Map<String,String> keysValues);
+    public Set<URI> deleteAllWithKeywordAndMetadata(String keyword,Map<String,String> keysValues){
+        return deleteDocuments(this.searchByKeywordAndMetadata(keyword, keysValues));
+    }
 
     /**
      * Completely remove any trace of any document which contains a word that has the given prefix AND which has the given key-value pairs in its metadata
@@ -275,8 +310,26 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage4.Docum
      * @param keywordPrefix
      * @return a Set of URIs of the documents that were deleted.
      */
-    Set<URI> deleteAllWithPrefixAndMetadata(String keywordPrefix,Map<String,String> keysValues);
-    public class DocumentComparator implements Comparator<Document> {
+    public Set<URI> deleteAllWithPrefixAndMetadata(String keywordPrefix,Map<String,String> keysValues){
+        return deleteDocuments(searchByPrefixAndMetadata(keywordPrefix, keysValues));
+    }
+    private Set<URI> deleteDocuments(List<Document> toDelete){
+        Set<URI> deletedURIs = new HashSet<>();
+        for(Document doc : toDelete){
+            deletedURIs.add(doc.getKey());
+            this.table.put(doc.getKey(), null);
+            Set<String> words = doc.getWords();
+            for(String word : words){
+                docsText.delete(word, doc);
+            }
+            Set<String> metaDataKeys = doc.getMetadata().keySet();
+            for(String dataPoint : metaDataKeys){
+                metaData.delete(dataPoint, doc);
+            }
+        }
+        return deletedURIs;
+    }
+    private class DocumentComparator implements Comparator<Document> {
         private String keyword;
 
         public DocumentComparator(String keyword) {
@@ -287,7 +340,7 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage4.Docum
         public int compare(Document doc1, Document doc2) {
             int doc1Count = doc1.wordCount(this.keyword);
             int doc2Count = doc2.wordCount(this.keyword);
-            if (doc1Count < doc2Count) {
+            if (doc1Count > doc2Count) {
                 return -1;
             }
             if (doc1Count == doc2Count) {
