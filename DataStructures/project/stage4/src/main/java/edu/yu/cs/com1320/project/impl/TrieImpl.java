@@ -7,7 +7,7 @@ public class TrieImpl<Value> implements Trie<Value> {
     private static final int alphabetSize = 256;
     private Node<Value> root;
     public class Node<Value>{
-        protected HashSet<Value> vals;
+        protected HashSet<Value> vals = new HashSet<>();
         protected Node[] links = new Node[alphabetSize];
     }
     /**

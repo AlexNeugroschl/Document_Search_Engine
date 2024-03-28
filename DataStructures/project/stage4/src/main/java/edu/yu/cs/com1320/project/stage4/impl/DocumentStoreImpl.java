@@ -10,7 +10,6 @@ import java.io.InputStream;
 import java.net.URI;
 import java.util.*;
 import edu.yu.cs.com1320.project.stage4.Document;
-import edu.yu.cs.com1320.project.undo.Command;
 import edu.yu.cs.com1320.project.impl.TrieImpl;
 import edu.yu.cs.com1320.project.undo.CommandSet;
 import edu.yu.cs.com1320.project.undo.GenericCommand;
@@ -110,7 +109,7 @@ public class DocumentStoreImpl implements DocumentStore{
 
     }
     private void addTextToTrie(Document doc){
-        String[] words = (String[]) doc.getWords().toArray();
+        Set<String> words = doc.getWords();
         for(String word : words){
             this.docsText.put(word, doc);
         }
@@ -140,8 +139,8 @@ public class DocumentStoreImpl implements DocumentStore{
         if(deleted == 0){
             return false;
         }else {
-            commandStack.push(new GenericCommand<>(this.get(url), document -> {
-                this.table.put(document.getKey(), docToDelete);
+            commandStack.push(new GenericCommand<>(docToDelete, document -> {
+                this.table.put(document.getKey(), document);
                 this.addTextToTrie(document);
                 Set<String> metaDataKeys = document.getMetadata().keySet();
                 for (String dataPoint : metaDataKeys){
