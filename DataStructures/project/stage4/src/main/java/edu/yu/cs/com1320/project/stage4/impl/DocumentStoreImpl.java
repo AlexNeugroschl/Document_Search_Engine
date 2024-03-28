@@ -1,4 +1,6 @@
 package edu.yu.cs.com1320.project.stage4.impl;
+import edu.yu.cs.com1320.project.HashTable;
+import edu.yu.cs.com1320.project.stage4.DocumentStore;
 import edu.yu.cs.com1320.project.stage4.impl.DocumentImpl;
 import edu.yu.cs.com1320.project.impl.HashTableImpl;
 import edu.yu.cs.com1320.project.impl.StackImpl;
@@ -6,16 +8,17 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.*;
-
 import edu.yu.cs.com1320.project.stage4.Document;
 import edu.yu.cs.com1320.project.undo.Command;
 import edu.yu.cs.com1320.project.impl.TrieImpl;
+import edu.yu.cs.com1320.project.undo.CommandSet;
+import edu.yu.cs.com1320.project.undo.GenericCommand;
+import edu.yu.cs.com1320.project.undo.Undoable;
 
-public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage4.DocumentStore{
+public class DocumentStoreImpl implements DocumentStore{
     HashTableImpl<URI, Document> table;
-    StackImpl<Command> commandStack;
+    StackImpl<Undoable> commandStack;
     TrieImpl<Document> docsText;
     TrieImpl<Document> metaData;
     public DocumentStoreImpl(){
@@ -38,9 +41,7 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage4.Docum
             throw new IllegalArgumentException("DocumentStore setMetaData error");
         }
         String oldValue = getMetadata(uri, key);
-        commandStack.push(new Command(uri, url -> {
-            this.get(url).setMetadataValue(key, oldValue);
-        }));
+        commandStack.push(new GenericCommand<>(this.get(uri), doc -> doc.setMetadataValue(key, oldValue)));
         if(value != null) {
             this.metaData.put(key, this.get(uri));
         }else{
@@ -91,23 +92,16 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage4.Docum
             DocumentImpl doc;
             if(format == DocumentFormat.TXT){
                 doc = new DocumentImpl(uri, text);
-                String[] words = (String[]) doc.getWords().toArray();
-                for(String word : words){
-                    this.docsText.put(word, doc);
-                }
+                this.addTextToTrie(doc);
             }else{
                 doc = new DocumentImpl(uri, bytes);
             }
             Document original = table.put(uri, doc);
             if(original == null){
-                commandStack.push(new Command(uri, url -> {
-                    this.table.put(url, null);
-                }));
+                commandStack.push(new GenericCommand<>(this.get(uri), document -> this.table.put(document.getKey(), null)));
                 return 0;
             }else{
-                commandStack.push(new Command(uri, url -> {
-                    this.table.put(url, original);
-                }));
+                commandStack.push(new GenericCommand<>(this.get(uri), document -> this.table.put(document.getKey(), original)));
                 return original.hashCode();
             }
         }catch(IOException e){
@@ -115,7 +109,12 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage4.Docum
         }
 
     }
-
+    private void addTextToTrie(Document doc){
+        String[] words = (String[]) doc.getWords().toArray();
+        for(String word : words){
+            this.docsText.put(word, doc);
+        }
+    }
     /**
      * @param url the unique identifier of the document to get
      * @return the given document
@@ -141,8 +140,14 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage4.Docum
         if(deleted == 0){
             return false;
         }else {
-            commandStack.push(new Command(url, uri -> {
-                this.table.put(uri, docToDelete);
+            commandStack.push(new GenericCommand<>(this.get(url), document -> {
+                this.table.put(document.getKey(), docToDelete);
+                this.addTextToTrie(document);
+                Set<String> metaDataKeys = document.getMetadata().keySet();
+                for (String dataPoint : metaDataKeys){
+                    metaData.put(dataPoint, document);
+                    document.setMetadataValue(dataPoint, document.getMetadataValue(dataPoint));
+                }
             }));
             return true;
         }
@@ -152,7 +157,7 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage4.Docum
      * @throws IllegalStateException if there are no actions to be undone, i.e. the command stack is empty
      */
     public void undo() throws IllegalStateException{
-        Command topUndo = commandStack.pop();
+        Undoable topUndo = commandStack.pop();
         if(topUndo == null){
             throw new IllegalStateException("Stack is empty: undo()");
         }else{
@@ -166,24 +171,35 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage4.Docum
      * @throws IllegalStateException if there are no actions on the command stack for the given URI
      */
     public void undo(URI url) throws IllegalStateException{
-        StackImpl<Command> temp = new StackImpl<>();
+        StackImpl<Undoable> temp = new StackImpl<>();
         Boolean undid = false;
-        while(undid == false) {
-            Command currentUndo = commandStack.pop();
-            if (currentUndo == null || currentUndo.getUri().equals(url)) {
-                while(temp.size() > 0) {
+        while(!undid) {
+            Undoable currentUndo = commandStack.pop();
+            if (currentUndo == null) {
+                while (temp.size() > 0) {
                     commandStack.push(temp.pop());
                 }
-                if (currentUndo == null) {
-                    throw new IllegalStateException("No URI in commandStack: undo(URI url)");
-                } else {
-                    currentUndo.undo();
-                    undid = true;
+                throw new IllegalStateException("No URI in commandStack: undo(URI url)");
+            }
+            if (currentUndo instanceof GenericCommand<?> && ((GenericCommand<?>) currentUndo).getTarget().equals(this.get(url))) {
+                while (temp.size() > 0) {
+                    commandStack.push(temp.pop());
                 }
+                currentUndo.undo();
+                undid = true;
+            }
+            if(currentUndo instanceof CommandSet<?> && ((CommandSet<Document>) currentUndo).containsTarget(this.get(url))){
+                ((CommandSet<Document>) currentUndo).undo(this.get(url));
+                commandStack.push(currentUndo);
+                while (temp.size() > 0) {
+                    commandStack.push(temp.pop());
+                }
+                undid = true;
             }
             temp.push(currentUndo);
         }
     }
+
     //**********STAGE 4 ADDITIONS
 
     /**
@@ -234,7 +250,7 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage4.Docum
      */
     public List<Document> searchByMetadata(Map<String,String> keysValues){
         Set<String> keys = keysValues.keySet();
-        Set<Document> docs;
+        Set<Document> docs = null;
         for(String key : keys){
             if(docs == null){
                 docs = metaData.get(key);
@@ -315,6 +331,7 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage4.Docum
     }
     private Set<URI> deleteDocuments(List<Document> toDelete){
         Set<URI> deletedURIs = new HashSet<>();
+        CommandSet<Document> undelete = new CommandSet<>();
         for(Document doc : toDelete){
             deletedURIs.add(doc.getKey());
             this.table.put(doc.getKey(), null);
@@ -326,6 +343,14 @@ public class DocumentStoreImpl implements edu.yu.cs.com1320.project.stage4.Docum
             for(String dataPoint : metaDataKeys){
                 metaData.delete(dataPoint, doc);
             }
+            undelete.addCommand(new GenericCommand<>(doc, document -> {
+                this.table.put(document.getKey(), document);
+                this.addTextToTrie(document);
+                for (String dataPoint : metaDataKeys){
+                    metaData.put(dataPoint, document);
+                    document.setMetadataValue(dataPoint, document.getMetadataValue(dataPoint));
+                }
+            }));
         }
         return deletedURIs;
     }
