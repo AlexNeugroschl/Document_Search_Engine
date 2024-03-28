@@ -39,7 +39,7 @@ public class DocumentStoreImpl implements DocumentStore{
             throw new IllegalArgumentException("DocumentStore setMetaData error");
         }
         String oldValue = getMetadata(uri, key);
-        commandStack.push(new GenericCommand<>(this.get(uri), doc -> doc.setMetadataValue(key, oldValue)));
+        commandStack.push(new GenericCommand<>(uri, url -> this.get(url).setMetadataValue(key, oldValue)));
         if(value != null) {
             this.metaData.put(key, this.get(uri));
         }else{
@@ -90,10 +90,10 @@ public class DocumentStoreImpl implements DocumentStore{
             }
             Document original = table.put(uri, doc);
             if(original == null){
-                commandStack.push(new GenericCommand<>(this.get(uri), document -> this.table.put(document.getKey(), null)));
+                commandStack.push(new GenericCommand<>(uri, url -> this.table.put(url, null)));
                 return 0;
             }else{
-                commandStack.push(new GenericCommand<>(this.get(uri), document -> this.table.put(document.getKey(), original)));
+                commandStack.push(new GenericCommand<>(uri, url -> this.table.put(url, original)));
                 return original.hashCode();
             }
         }catch(IOException e){
@@ -156,15 +156,15 @@ public class DocumentStoreImpl implements DocumentStore{
                 }
                 throw new IllegalStateException("No URI in commandStack: undo(URI url)");
             }
-            if (currentUndo instanceof GenericCommand<?> && ((GenericCommand<?>) currentUndo).getTarget().equals(this.get(url))) {
+            if (currentUndo instanceof GenericCommand<?> && ((GenericCommand<?>) currentUndo).getTarget().equals(url)) {
                 while (temp.size() > 0) {
                     commandStack.push(temp.pop());
                 }
                 currentUndo.undo();
                 undid = true;
             }
-            if(currentUndo instanceof CommandSet<?> && ((CommandSet<Document>) currentUndo).containsTarget(this.get(url))){ //this.get(url) is null on delete undo
-                ((CommandSet<Document>) currentUndo).undo(this.get(url));
+            if(currentUndo instanceof CommandSet<?> && ((CommandSet<URI>) currentUndo).containsTarget(url)){ //this.get(url) is null on delete undo
+                ((CommandSet<URI>) currentUndo).undo(url);
                 commandStack.push(currentUndo);
                 while (temp.size() > 0) {
                     commandStack.push(temp.pop());
@@ -294,16 +294,16 @@ public class DocumentStoreImpl implements DocumentStore{
     }
     private Set<URI> deleteDocuments(List<Document> toDelete){
         Set<URI> deletedURIs = new HashSet<>();
-        CommandSet<Document> undelete = new CommandSet<>();
+        CommandSet<URI> undelete = new CommandSet<>();
         for(Document doc : toDelete){
             Set<String> metaDataKeys = doc.getMetadata().keySet();
             deletedURIs.add(doc.getKey());
-            undelete.addCommand(new GenericCommand<>(doc, document -> {
-                this.table.put(document.getKey(), document);
-                this.addTextToTrie(document);
+            undelete.addCommand(new GenericCommand<>(doc.getKey(), uri -> {
+                this.table.put((URI) doc.getKey(), doc);
+                this.addTextToTrie(doc);
                 for (String dataPoint : metaDataKeys){
-                    metaData.put(dataPoint, document);
-                    document.setMetadataValue(dataPoint, document.getMetadataValue(dataPoint));
+                    metaData.put(dataPoint, doc);
+                    doc.setMetadataValue(dataPoint, doc.getMetadataValue(dataPoint));
                 }
             }));
             commandStack.push(undelete);
