@@ -18,9 +18,9 @@ public class TrieImpl<Value> implements Trie<Value> {
     public void put(String key, Value val){
         this.root = put(this.root, key, val, 0);
     }
-    private Node put(Node x, String key, Value val, int d){
+    private Node<Value> put(Node<Value> x, String key, Value val, int d){
         if(x == null){
-            x = new Node();
+            x = new Node<Value>();
         }
         if(d == key.length()){
             x.vals.add(val); //add to set
@@ -55,7 +55,7 @@ public class TrieImpl<Value> implements Trie<Value> {
     public Set<Value> get(String key){
         return (Set<Value>) this.getNode(this.root, key, 0).vals;
     }
-    private Node getNode(Node x, String key, int d){
+    private Node<Value> getNode(Node<Value> x, String key, int d){
         //link was null - return null, indicating a miss
         if (x == null)
         {
@@ -122,7 +122,7 @@ public class TrieImpl<Value> implements Trie<Value> {
      */
     public Set<Value> deleteAll(String key){
         Set<Value> set = this.get(key);
-        Node deleted = this.getNode(this.root, key, 0);
+        Node<Value> deleted = this.getNode(this.root, key, 0);
         deleted.vals.clear();
         deleteExcess(this.root, key, 0);
         return set;
@@ -135,7 +135,7 @@ public class TrieImpl<Value> implements Trie<Value> {
      * @return the value which was deleted. If the key did not contain the given value, return null.
      */
     public Value delete(String key, Value val){
-        Node node = this.getNode(this.root, key, 0);
+        Node<Value> node = this.getNode(this.root, key, 0);
         if(node.vals.size() == 1 && node.vals.contains(val)){
             node.vals.remove(val);
             deleteExcess(this.root, key, 0);
@@ -143,10 +143,10 @@ public class TrieImpl<Value> implements Trie<Value> {
         }
         return node.vals.remove(val) ? val : null;
     }
-    private void deleteExcess(Node node, String key, int d){
+    private void deleteExcess(Node<Value> node, String key, int d){
         char c = key.charAt(d);
         if (d < key.length()-1){
-            deleteExcess(node.links[c], key, d++);;
+            deleteExcess(node.links[c], key, ++d);;
         }
         if(node.links[c].vals.isEmpty() && node.links[c].links.length == 0){
             node.links[c] = null;

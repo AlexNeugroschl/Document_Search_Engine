@@ -14,7 +14,6 @@ import edu.yu.cs.com1320.project.impl.TrieImpl;
 import edu.yu.cs.com1320.project.undo.CommandSet;
 import edu.yu.cs.com1320.project.undo.GenericCommand;
 import edu.yu.cs.com1320.project.undo.Undoable;
-
 public class DocumentStoreImpl implements DocumentStore{
     HashTableImpl<URI, Document> table;
     StackImpl<Undoable> commandStack;
@@ -48,7 +47,6 @@ public class DocumentStoreImpl implements DocumentStore{
         }
         return this.get(uri).setMetadataValue(key, value);
     }
-
     /**
      * get the value corresponding to the given metadata key for the document at the given uri
      *
@@ -63,7 +61,6 @@ public class DocumentStoreImpl implements DocumentStore{
         }
         return this.get(uri).getMetadataValue(key);
     }
-
     /**
      * @param input  the document being put
      * @param uri    unique identifier for the document
@@ -79,11 +76,7 @@ public class DocumentStoreImpl implements DocumentStore{
         try{
             if(input == null){
                 Document deleted = table.put(uri, null);
-                if(deleted == null) {
-                    return 0;
-                }else{
-                    return deleted.hashCode();
-                }
+                return deleted == null ? 0 : deleted.hashCode();
             }
             byte[] bytes = input.readAllBytes();
             input.close();
@@ -106,7 +99,6 @@ public class DocumentStoreImpl implements DocumentStore{
         }catch(IOException e){
             throw new IOException("DocumentStoreImpl IOE exception");
         }
-
     }
     private void addTextToTrie(Document doc){
         Set<String> words = doc.getWords();
@@ -121,33 +113,18 @@ public class DocumentStoreImpl implements DocumentStore{
     public Document get(URI url){
         return table.get(url);
     }
-
     /**
      * @param url the unique identifier of the document to delete
      * @return true if the document is deleted, false if no document exists with that URI
      */
     public boolean delete(URI url){
-        InputStream input = null;
-        int deleted = 0;
-        Document docToDelete;
-        try{
-            docToDelete = this.table.get(url);
-            deleted = this.put(input, url, DocumentFormat.BINARY);
-        }catch(IOException e){
-                return false;
-        }
-        if(deleted == 0){
+        Document docToDelete = this.table.get(url);
+        if(docToDelete == null){
             return false;
-        }else {
-            commandStack.push(new GenericCommand<>(docToDelete, document -> {
-                this.table.put(document.getKey(), document);
-                this.addTextToTrie(document);
-                Set<String> metaDataKeys = document.getMetadata().keySet();
-                for (String dataPoint : metaDataKeys){
-                    metaData.put(dataPoint, document);
-                    document.setMetadataValue(dataPoint, document.getMetadataValue(dataPoint));
-                }
-            }));
+        }else{
+            LinkedList<Document> doc = new LinkedList<>();
+            doc.add(docToDelete);
+            deleteDocuments(doc);
             return true;
         }
     }
@@ -163,7 +140,6 @@ public class DocumentStoreImpl implements DocumentStore{
             topUndo.undo();
         }
     }
-
     /**
      * undo the last put or delete that was done with the given URI as its key
      * @param url
@@ -171,7 +147,7 @@ public class DocumentStoreImpl implements DocumentStore{
      */
     public void undo(URI url) throws IllegalStateException{
         StackImpl<Undoable> temp = new StackImpl<>();
-        Boolean undid = false;
+        boolean undid = false;
         while(!undid) {
             Undoable currentUndo = commandStack.pop();
             if (currentUndo == null) {
@@ -187,7 +163,7 @@ public class DocumentStoreImpl implements DocumentStore{
                 currentUndo.undo();
                 undid = true;
             }
-            if(currentUndo instanceof CommandSet<?> && ((CommandSet<Document>) currentUndo).containsTarget(this.get(url))){
+            if(currentUndo instanceof CommandSet<?> && ((CommandSet<Document>) currentUndo).containsTarget(this.get(url))){ //this.get(url) is null on delete undo
                 ((CommandSet<Document>) currentUndo).undo(this.get(url));
                 commandStack.push(currentUndo);
                 while (temp.size() > 0) {
@@ -198,9 +174,6 @@ public class DocumentStoreImpl implements DocumentStore{
             temp.push(currentUndo);
         }
     }
-
-    //**********STAGE 4 ADDITIONS
-
     /**
      * Retrieve all documents whose text contains the given keyword.
      * Documents are returned in sorted, descending order, sorted by the number of times the keyword appears in the document.
@@ -211,7 +184,6 @@ public class DocumentStoreImpl implements DocumentStore{
     public List<Document> search(String keyword){
         return docsText.getSorted(keyword, new DocumentComparator(keyword));
     }
-
     /**
      * Retrieve all documents that contain text which starts with the given prefix
      * Documents are returned in sorted, descending order, sorted by the number of times the prefix appears in the document.
@@ -222,7 +194,6 @@ public class DocumentStoreImpl implements DocumentStore{
     public List<Document> searchByPrefix(String keywordPrefix){
         return this.docsText.getAllWithPrefixSorted(keywordPrefix, new DocumentComparator(keywordPrefix));
     }
-
     /**
      * Completely remove any trace of any document which contains the given keyword
      * Search is CASE SENSITIVE.
@@ -232,7 +203,6 @@ public class DocumentStoreImpl implements DocumentStore{
     public Set<URI> deleteAll(String keyword){
         return deleteDocuments(new LinkedList<>(docsText.get(keyword)));
     }
-
     /**
      * Completely remove any trace of any document which contains a word that has the given prefix
      * Search is CASE SENSITIVE.
@@ -242,7 +212,6 @@ public class DocumentStoreImpl implements DocumentStore{
     public Set<URI> deleteAllWithPrefix(String keywordPrefix){
         return deleteDocuments(docsText.getAllWithPrefixSorted(keywordPrefix, new DocumentComparator(keywordPrefix)));
     }
-
     /**
      * @param keysValues metadata key-value pairs to search for
      * @return a List of all documents whose metadata contains ALL OF the given values for the given keys. If no documents contain all the given key-value pairs, return an empty list.
@@ -262,7 +231,6 @@ public class DocumentStoreImpl implements DocumentStore{
         }
         return new LinkedList<>(docs);
     }
-
     /**
      * Retrieve all documents whose text contains the given keyword AND which has the given key-value pairs in its metadata
      * Documents are returned in sorted, descending order, sorted by the number of times the keyword appears in the document.
@@ -281,7 +249,6 @@ public class DocumentStoreImpl implements DocumentStore{
         }
         return matchingMetaData;
     }
-
     /**
      * Retrieve all documents that contain text which starts with the given prefix AND which has the given key-value pairs in its metadata
      * Documents are returned in sorted, descending order, sorted by the number of times the prefix appears in the document.
@@ -299,7 +266,6 @@ public class DocumentStoreImpl implements DocumentStore{
         }
         return matchingMetaData;
     }
-
     /**
      * Completely remove any trace of any document which has the given key-value pairs in its metadata
      * Search is CASE SENSITIVE.
@@ -308,7 +274,6 @@ public class DocumentStoreImpl implements DocumentStore{
     public Set<URI> deleteAllWithMetadata(Map<String,String> keysValues){ // need to delete from both tries
         return deleteDocuments(this.searchByMetadata(keysValues));
     }
-
     /**
      * Completely remove any trace of any document which contains the given keyword AND which has the given key-value pairs in its metadata
      * Search is CASE SENSITIVE.
@@ -318,7 +283,6 @@ public class DocumentStoreImpl implements DocumentStore{
     public Set<URI> deleteAllWithKeywordAndMetadata(String keyword,Map<String,String> keysValues){
         return deleteDocuments(this.searchByKeywordAndMetadata(keyword, keysValues));
     }
-
     /**
      * Completely remove any trace of any document which contains a word that has the given prefix AND which has the given key-value pairs in its metadata
      * Search is CASE SENSITIVE.
@@ -332,16 +296,8 @@ public class DocumentStoreImpl implements DocumentStore{
         Set<URI> deletedURIs = new HashSet<>();
         CommandSet<Document> undelete = new CommandSet<>();
         for(Document doc : toDelete){
-            deletedURIs.add(doc.getKey());
-            this.table.put(doc.getKey(), null);
-            Set<String> words = doc.getWords();
-            for(String word : words){
-                docsText.delete(word, doc);
-            }
             Set<String> metaDataKeys = doc.getMetadata().keySet();
-            for(String dataPoint : metaDataKeys){
-                metaData.delete(dataPoint, doc);
-            }
+            deletedURIs.add(doc.getKey());
             undelete.addCommand(new GenericCommand<>(doc, document -> {
                 this.table.put(document.getKey(), document);
                 this.addTextToTrie(document);
@@ -350,6 +306,15 @@ public class DocumentStoreImpl implements DocumentStore{
                     document.setMetadataValue(dataPoint, document.getMetadataValue(dataPoint));
                 }
             }));
+            commandStack.push(undelete);
+            this.table.put(doc.getKey(), null);
+            Set<String> words = doc.getWords();
+            for(String word : words){
+                docsText.delete(word, doc);
+            }
+            for(String dataPoint : metaDataKeys){
+                metaData.delete(dataPoint, doc);
+            }
         }
         return deletedURIs;
     }
@@ -359,7 +324,6 @@ public class DocumentStoreImpl implements DocumentStore{
         public DocumentComparator(String keyword) {
             this.keyword = keyword;
         }
-
         @Override
         public int compare(Document doc1, Document doc2) {
             int doc1Count = doc1.wordCount(this.keyword);
