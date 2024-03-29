@@ -216,6 +216,9 @@ public class DocumentStoreImpl implements DocumentStore {
                 }
             }
         }
+        if(docs == null){
+            return new LinkedList<>();
+        }
         return new LinkedList<>(docs);
     }
     /**

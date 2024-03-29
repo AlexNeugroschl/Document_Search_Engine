@@ -123,7 +123,10 @@ public class DocumentImpl implements edu.yu.cs.com1320.project.stage4.Document{
      * @return the number of times the given words appears in the document. If it's a binary document, return 0.
      */
     public int wordCount(String word){
-        return wordCountTable == null ? 0 : wordCountTable.get(word);
+        if (wordCountTable == null){
+            return 0;
+        }
+        return wordCountTable.get(word) == null ? 0 : wordCountTable.get(word);
     }
 
     /**
