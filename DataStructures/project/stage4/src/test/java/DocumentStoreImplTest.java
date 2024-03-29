@@ -778,4 +778,68 @@ public class DocumentStoreImplTest {
         Set<URI> deleted = store.deleteAll("doc1");
         assertEquals(1, deleted.size());
     }
+    @Test
+    public void searchByPrefixTest() throws URISyntaxException, UnsupportedEncodingException, IOException {
+        DocumentStoreImpl store = new DocumentStoreImpl();
+        DocumentStore.DocumentFormat format = DocumentStore.DocumentFormat.TXT;
+        URI uri1 = new URI("www.test1.com");
+        URI uri2 = new URI("www.test2.com");
+        URI uri3 = new URI("www.test3.com");
+        URI uri4 = new URI("www.test4.com");
+        URI uri5 = new URI("www.test5.com");
+        String text1 = "This is the text of doc1";
+        String text2 = "This is the text of doc2";
+        String text3 = "This is the text of doc3";
+        String text4 = "This is the text of doc4";
+        String text5 = "This is the text of doc5";
+        byte[] bytes1 = text1.getBytes();
+        byte[] bytes2 = text2.getBytes();
+        byte[] bytes3 = text3.getBytes();
+        byte[] bytes4 = text4.getBytes();
+        byte[] bytes5 = text5.getBytes();
+        ByteArrayInputStream input1 = new ByteArrayInputStream(bytes1);
+        ByteArrayInputStream input2 = new ByteArrayInputStream(bytes2);
+        ByteArrayInputStream input3 = new ByteArrayInputStream(bytes3);
+        ByteArrayInputStream input4 = new ByteArrayInputStream(bytes4);
+        ByteArrayInputStream input5 = new ByteArrayInputStream(bytes5);
+        store.put(input1, uri1, format);
+        store.put(input2, uri2, format);
+        store.put(input3, uri3, format);
+        store.put(input4, uri4, format);
+        store.put(input5, uri5, format);
+        List<Document> searched = store.searchByPrefix("doc");
+        assertEquals(5, searched.size());
+    }
+    @Test
+    public void searchByPrefixTest2() throws URISyntaxException, UnsupportedEncodingException, IOException {
+        DocumentStoreImpl store = new DocumentStoreImpl();
+        DocumentStore.DocumentFormat format = DocumentStore.DocumentFormat.TXT;
+        URI uri1 = new URI("www.test1.com");
+        URI uri2 = new URI("www.test2.com");
+        URI uri3 = new URI("www.test3.com");
+        URI uri4 = new URI("www.test4.com");
+        URI uri5 = new URI("www.test5.com");
+        String text1 = "This is the text of doc1";
+        String text2 = "This is the text of doc2";
+        String text3 = "This is the text of doc3";
+        String text4 = "This is the text of doc4";
+        String text5 = "This is the text of doc5";
+        byte[] bytes1 = text1.getBytes();
+        byte[] bytes2 = text2.getBytes();
+        byte[] bytes3 = text3.getBytes();
+        byte[] bytes4 = text4.getBytes();
+        byte[] bytes5 = text5.getBytes();
+        ByteArrayInputStream input1 = new ByteArrayInputStream(bytes1);
+        ByteArrayInputStream input2 = new ByteArrayInputStream(bytes2);
+        ByteArrayInputStream input3 = new ByteArrayInputStream(bytes3);
+        ByteArrayInputStream input4 = new ByteArrayInputStream(bytes4);
+        ByteArrayInputStream input5 = new ByteArrayInputStream(bytes5);
+        store.put(input1, uri1, format);
+        store.put(input2, uri2, format);
+        store.put(input3, uri3, format);
+        store.put(input4, uri4, format);
+        store.put(input5, uri5, format);
+        List<Document> searched = store.searchByPrefix("doc3");
+        assertEquals(1, searched.size());
+    }
 }

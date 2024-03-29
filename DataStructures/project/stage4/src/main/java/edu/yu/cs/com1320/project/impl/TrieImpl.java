@@ -88,6 +88,7 @@ public class TrieImpl<Value> implements Trie<Value> {
     public List<Value> getAllWithPrefixSorted(String prefix, Comparator<Value> comparator) {
         Node endOfPrefix = getNode(this.root, prefix, 0);
         List<Value> values = getAllWithPrefixSortedLogic(endOfPrefix);
+        values.addAll(endOfPrefix.vals);
         values.sort(comparator);
         return values;
     }
@@ -114,6 +115,7 @@ public class TrieImpl<Value> implements Trie<Value> {
         Node endOfPrefix = getNode(this.root, prefix, 0);
         Set<Value> set = new HashSet<>();
         set.addAll(getAllWithPrefixSortedLogic(endOfPrefix));
+        set.addAll(endOfPrefix.vals);
         Arrays.fill(endOfPrefix.links, null);
         deleteExcess(this.root, prefix, 0);
         return set;
