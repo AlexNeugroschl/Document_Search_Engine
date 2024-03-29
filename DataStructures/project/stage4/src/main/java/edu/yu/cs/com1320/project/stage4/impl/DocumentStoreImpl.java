@@ -1,19 +1,11 @@
 package edu.yu.cs.com1320.project.stage4.impl;
-import edu.yu.cs.com1320.project.HashTable;
-import edu.yu.cs.com1320.project.stage4.DocumentStore;
-import edu.yu.cs.com1320.project.stage4.impl.DocumentImpl;
-import edu.yu.cs.com1320.project.impl.HashTableImpl;
-import edu.yu.cs.com1320.project.impl.StackImpl;
-import java.io.ByteArrayInputStream;
+import edu.yu.cs.com1320.project.stage4.*;
+import edu.yu.cs.com1320.project.impl.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.*;
-import edu.yu.cs.com1320.project.stage4.Document;
-import edu.yu.cs.com1320.project.impl.TrieImpl;
-import edu.yu.cs.com1320.project.undo.CommandSet;
-import edu.yu.cs.com1320.project.undo.GenericCommand;
-import edu.yu.cs.com1320.project.undo.Undoable;
+import edu.yu.cs.com1320.project.undo.*;
 public class DocumentStoreImpl implements DocumentStore{
     HashTableImpl<URI, Document> table;
     StackImpl<Undoable> commandStack;
@@ -79,7 +71,6 @@ public class DocumentStoreImpl implements DocumentStore{
                 return deleted == null ? 0 : deleted.hashCode();
             }
             byte[] bytes = input.readAllBytes();
-            input.close();
             String text = new String(bytes);
             DocumentImpl doc;
             if(format == DocumentFormat.TXT){
@@ -320,7 +311,6 @@ public class DocumentStoreImpl implements DocumentStore{
     }
     private class DocumentComparator implements Comparator<Document> {
         private String keyword;
-
         public DocumentComparator(String keyword) {
             this.keyword = keyword;
         }
