@@ -711,4 +711,8 @@ public class DocumentStoreImplTest {
         store.undo(uri4);
         assertEquals("www.test3.com", store.get(uri3).getKey().toString());
     }
+    @Test
+    public void searchTest() throws URISyntaxException, UnsupportedEncodingException, IOException {
+
+    }
 }
