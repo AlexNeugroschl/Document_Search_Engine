@@ -67,26 +67,17 @@ public class DocumentStoreImpl implements DocumentStore{
         }
         try{
             if(input == null){
-                Document deleted = table.put(uri, null);
-                return deleted == null ? 0 : deleted.hashCode();
+                Document deleted = this.table.get(uri);
+                return this.delete(uri) ? deleted.hashCode() : 0;
             }
             byte[] bytes = input.readAllBytes();
-            String text = new String(bytes);
-            DocumentImpl doc;
-            if(format == DocumentFormat.TXT){
-                doc = new DocumentImpl(uri, text);
+            DocumentImpl doc = format == DocumentFormat.TXT ? new DocumentImpl(uri, new String(bytes)) : new DocumentImpl(uri, bytes);
+            if(format == DocumentFormat.TXT) {
                 this.addTextToTrie(doc);
-            }else{
-                doc = new DocumentImpl(uri, bytes);
             }
             Document original = table.put(uri, doc);
-            if(original == null){
-                commandStack.push(new GenericCommand<>(uri, url -> this.table.put(url, null)));
-                return 0;
-            }else{
-                commandStack.push(new GenericCommand<>(uri, url -> this.table.put(url, original)));
-                return original.hashCode();
-            }
+            commandStack.push(new GenericCommand<>(uri, url -> this.table.put(url, original)));
+            return original == null ? 0 : original.hashCode();
         }catch(IOException e){
             throw new IOException("DocumentStoreImpl IOE exception");
         }
@@ -127,9 +118,8 @@ public class DocumentStoreImpl implements DocumentStore{
         Undoable topUndo = commandStack.pop();
         if(topUndo == null){
             throw new IllegalStateException("Stack is empty: undo()");
-        }else{
-            topUndo.undo();
         }
+        topUndo.undo();
     }
     /**
      * undo the last put or delete that was done with the given URI as its key
@@ -321,10 +311,7 @@ public class DocumentStoreImpl implements DocumentStore{
             if (doc1Count > doc2Count) {
                 return -1;
             }
-            if (doc1Count == doc2Count) {
-                return 0;
-            }
-            return 1;
+            return doc1Count == doc2Count ? 0 : 1;
         }
     }
 }
