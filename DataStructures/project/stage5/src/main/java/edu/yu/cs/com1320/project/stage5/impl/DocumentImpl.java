@@ -1,4 +1,5 @@
 package edu.yu.cs.com1320.project.stage5.impl;
+import edu.yu.cs.com1320.project.stage5.*;
 import  edu.yu.cs.com1320.project.impl.HashTableImpl;
 import edu.yu.cs.com1320.project.HashTable;
 import java.net.URI;
@@ -13,6 +14,7 @@ public class DocumentImpl implements edu.yu.cs.com1320.project.stage5.Document{
     String txt;
     byte[] binaryData;
     URI uri;
+    long lastUseTime;
     public DocumentImpl(URI uri, String txt){
         if(uri == null || uri.toString().isBlank()|| txt == null || txt.isBlank()){
             throw new IllegalArgumentException("DocumentImpl constructor 1");
@@ -117,6 +119,17 @@ public class DocumentImpl implements edu.yu.cs.com1320.project.stage5.Document{
             return false;
         }
     }
+    @Override
+    public int compareTo(Document doc){
+        long thisDocTime = this.getLastUseTime();
+        long otherDocTime = doc.getLastUseTime();
+        if (thisDocTime > otherDocTime){
+            return -1;
+        }else if (thisDocTime == otherDocTime){
+            return 0;
+        }
+        return 1;
+    }
     /**
      * how many times does the given word appear in the document?
      * @param word
@@ -139,6 +152,10 @@ public class DocumentImpl implements edu.yu.cs.com1320.project.stage5.Document{
      * return the last time this document was used, via put/get or via a search result
      * (for stage 4 of project)
      */
-    long getLastUseTime();
-    void setLastUseTime(long timeInNanoseconds);
+    public long getLastUseTime(){
+        return this.lastUseTime;
+    }
+    public void setLastUseTime(long timeInNanoseconds){
+        this.lastUseTime = timeInNanoseconds;
+    }
 }
