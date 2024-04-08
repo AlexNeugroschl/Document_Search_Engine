@@ -1,5 +1,5 @@
-package edu.yu.cs.com1320.project.stage4.impl;
-import edu.yu.cs.com1320.project.stage4.*;
+package edu.yu.cs.com1320.project.stage5.impl;
+import edu.yu.cs.com1320.project.stage5.*;
 import edu.yu.cs.com1320.project.impl.*;
 import java.io.IOException;
 import java.io.InputStream;
@@ -313,6 +313,19 @@ public class DocumentStoreImpl implements DocumentStore {
         }
         return deletedURIs;
     }
+    /**
+     * set maximum number of documents that may be stored
+     * @param limit
+     * @throws IllegalArgumentException if limit < 1
+     */
+    void setMaxDocumentCount(int limit);
+
+    /**
+     * set maximum number of bytes of memory that may be used by all the documents in memory combined
+     * @param limit
+     * @throws IllegalArgumentException if limit < 1
+     */
+    void setMaxDocumentBytes(int limit);
     private class DocumentComparator implements Comparator<Document> {
         private String keyword;
         public DocumentComparator(String keyword) {
