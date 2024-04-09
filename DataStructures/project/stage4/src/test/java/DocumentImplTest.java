@@ -60,4 +60,34 @@ public class DocumentImplTest {
         doc.setMetadataValue("Reader","Also Also Me");
         assertEquals("Also Me", doc.getMetadataValue("Illustrator"));
     }
+    @Test
+    public void wordsOnlyContainLettersAndNumbers() throws URISyntaxException, UnsupportedEncodingException{
+        URI uri = new URI("https://www.geeksforgeeks.org/url-class-java-examples/");
+        String text = "This is the te%xt of the doc";
+        DocumentImpl doc = new DocumentImpl(uri, text);
+        doc.setMetadataValue("Author","Myself");
+        doc.setMetadataValue("Illustrator","Also Me");
+        doc.setMetadataValue("Reader","Also Also Me");
+        assertEquals(true, doc.getWords().contains("text"));
+    }
+    @Test
+    public void wordsOnlyContainLettersAndNumbers2() throws URISyntaxException, UnsupportedEncodingException{
+        URI uri = new URI("https://www.geeksforgeeks.org/url-class-java-examples/");
+        String text = "This is the text% of the doc";
+        DocumentImpl doc = new DocumentImpl(uri, text);
+        doc.setMetadataValue("Author","Myself");
+        doc.setMetadataValue("Illustrator","Also Me");
+        doc.setMetadataValue("Reader","Also Also Me");
+        assertEquals(true, doc.getWords().contains("text"));
+    }
+    @Test
+    public void returnsProperWordCount() throws URISyntaxException, UnsupportedEncodingException{
+        URI uri = new URI("https://www.geeksforgeeks.org/url-class-java-examples/");
+        String text = "This is the text of the doc";
+        DocumentImpl doc = new DocumentImpl(uri, text);
+        doc.setMetadataValue("Author","Myself");
+        doc.setMetadataValue("Illustrator","Also Me");
+        doc.setMetadataValue("Reader","Also Also Me");
+        assertEquals(2, doc.wordCount("the"));
+    }
 }

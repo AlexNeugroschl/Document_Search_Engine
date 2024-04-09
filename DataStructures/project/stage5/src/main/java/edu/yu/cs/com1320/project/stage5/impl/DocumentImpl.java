@@ -8,7 +8,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.HashMap;
 
-public class DocumentImpl implements edu.yu.cs.com1320.project.stage5.Document{
+public class DocumentImpl implements Document{
     HashTableImpl<String, String> metaDataTable;
     HashMap<String, Integer> wordCountTable;
     String txt;
@@ -119,7 +119,6 @@ public class DocumentImpl implements edu.yu.cs.com1320.project.stage5.Document{
             return false;
         }
     }
-    @Override
     public int compareTo(Document doc){
         long thisDocTime = this.getLastUseTime();
         long otherDocTime = doc.getLastUseTime();
