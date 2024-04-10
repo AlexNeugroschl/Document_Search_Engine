@@ -6,16 +6,19 @@ import java.io.InputStream;
 import java.net.URI;
 import java.util.*;
 import edu.yu.cs.com1320.project.undo.*;
+
 public class DocumentStoreImpl implements DocumentStore {
     HashTableImpl<URI, Document> table;
     StackImpl<Undoable> commandStack;
     TrieImpl<Document> docsText;
     TrieImpl<Document> metaData;
+    MinHeapImpl<Document> useTimes;
     public DocumentStoreImpl() {
         this.table = new HashTableImpl<>();
         this.commandStack = new StackImpl<>();
         this.docsText = new TrieImpl<>();
         this.metaData = new TrieImpl<>();
+        this.useTimes = new MinHeapImpl<>();
     }
     /**
      * set the given key-value metadata pair for the document at the given uri
@@ -62,25 +65,32 @@ public class DocumentStoreImpl implements DocumentStore {
      * @throws IllegalArgumentException if uri is null or empty, or format is null
      */
     public int put(InputStream input, URI uri, DocumentFormat format) throws IOException {
+        byte[] bytes;
         if (uri == null || uri.toString().isBlank() || format == null) {
             throw new IllegalArgumentException("DocumentStore Put error");
         }
-        try {
-            if (input == null) {
-                Document deleted = this.table.get(uri);
-                return this.delete(uri) ? deleted.hashCode() : 0;
-            }
-            byte[] bytes = input.readAllBytes();
-            DocumentImpl doc = format == DocumentFormat.TXT ? new DocumentImpl(uri, new String(bytes)) : new DocumentImpl(uri, bytes);
-            if (format == DocumentFormat.TXT) {
-                this.addTextToTrie(doc);
-            }
-            Document original = table.put(uri, doc);
-            commandStack.push(new GenericCommand<>(uri, url -> this.table.put(url, original)));
-            return original == null ? 0 : original.hashCode();
+        if (input == null) {
+            Document deleted = this.table.get(uri);
+            return this.delete(uri) ? deleted.hashCode() : 0;
+        }
+        try{
+            bytes = input.readAllBytes();
         } catch (IOException e) {
             throw new IOException("DocumentStoreImpl IOE exception");
         }
+        DocumentImpl doc = format == DocumentFormat.TXT ? new DocumentImpl(uri, new String(bytes)) : new DocumentImpl(uri, bytes);
+        if (format == DocumentFormat.TXT) {
+            this.addTextToTrie(doc);
+        }
+        this.useTimes.insert(doc);
+        Document original = table.put(uri, doc);
+        commandStack.push(new GenericCommand<>(uri, url -> { // NEEDS MORE UNDO FEATURES ********************
+            this.table.put(url, original);
+            this.updateDocsNanoTime(Arrays.asList(original));
+        }));
+        this.updateDocsNanoTime(Arrays.asList(doc));
+        return original == null ? 0 : original.hashCode();
+
     }
     private void addTextToTrie(Document doc) {
         Set<String> words = doc.getWords();
@@ -93,7 +103,9 @@ public class DocumentStoreImpl implements DocumentStore {
      * @return the given document
      */
     public Document get(URI url) {
-        return table.get(url);
+        Document doc = table.get(url);
+        this.updateDocsNanoTime(Arrays.asList(doc));
+        return doc;
     }
     /**
      * @param url the unique identifier of the document to delete
@@ -104,9 +116,7 @@ public class DocumentStoreImpl implements DocumentStore {
         if (docToDelete == null) {
             return false;
         } else {
-            LinkedList<Document> doc = new LinkedList<>();
-            doc.add(docToDelete);
-            deleteDocuments(doc);
+            deleteDocumentsAddingUndo((Arrays.asList(docToDelete)));
             return true;
         }
     }
@@ -166,7 +176,9 @@ public class DocumentStoreImpl implements DocumentStore {
      * @return a List of the matches. If there are no matches, return an empty list.
      */
     public List<Document> search(String keyword) {
-        return docsText.getSorted(keyword, new DocumentComparator(keyword));
+        List<Document> docs = this.docsText.getSorted(keyword, new DocumentComparator(keyword));
+        this.updateDocsNanoTime(docs);
+        return docs;
     }
     /**
      * Retrieve all documents that contain text which starts with the given prefix
@@ -177,7 +189,9 @@ public class DocumentStoreImpl implements DocumentStore {
      * @return a List of the matches. If there are no matches, return an empty list.
      */
     public List<Document> searchByPrefix(String keywordPrefix) {
-        return this.docsText.getAllWithPrefixSorted(keywordPrefix, new DocumentComparator(keywordPrefix));
+        List<Document> docs = this.docsText.getAllWithPrefixSorted(keywordPrefix, new DocumentComparator(keywordPrefix));
+        this.updateDocsNanoTime(docs);
+        return docs;
     }
     /**
      * Completely remove any trace of any document which contains the given keyword
@@ -187,7 +201,7 @@ public class DocumentStoreImpl implements DocumentStore {
      * @return a Set of URIs of the documents that were deleted.
      */
     public Set<URI> deleteAll(String keyword) {
-        return deleteDocuments(new LinkedList<>(docsText.get(keyword)));
+        return deleteDocumentsAddingUndo(new LinkedList<>(docsText.get(keyword)));
     }
     /**
      * Completely remove any trace of any document which contains a word that has the given prefix
@@ -197,7 +211,7 @@ public class DocumentStoreImpl implements DocumentStore {
      * @return a Set of URIs of the documents that were deleted.
      */
     public Set<URI> deleteAllWithPrefix(String keywordPrefix) {
-        return deleteDocuments(docsText.getAllWithPrefixSorted(keywordPrefix, new DocumentComparator(keywordPrefix)));
+        return deleteDocumentsAddingUndo(docsText.getAllWithPrefixSorted(keywordPrefix, new DocumentComparator(keywordPrefix)));
     }
     /**
      * @param keysValues metadata key-value pairs to search for
@@ -219,6 +233,7 @@ public class DocumentStoreImpl implements DocumentStore {
         if(docs == null){
             return new LinkedList<>();
         }
+        this.updateDocsNanoTime(new LinkedList<>(docs));
         return new LinkedList<>(docs);
     }
     /**
@@ -232,7 +247,7 @@ public class DocumentStoreImpl implements DocumentStore {
      */
     public List<Document> searchByKeywordAndMetadata(String keyword, Map<String, String> keysValues) {
         List<Document> matchingMetaData = this.searchByMetadata(keysValues);
-        List<Document> matchingText = new LinkedList<Document>(this.metaData.get(keyword));
+        List<Document> matchingText = new LinkedList<>(this.metaData.get(keyword));
         for (Document doc : matchingMetaData) {
             if (!matchingText.contains(doc)) {
                 matchingMetaData.remove(doc);
@@ -265,7 +280,7 @@ public class DocumentStoreImpl implements DocumentStore {
      * @return a Set of URIs of the documents that were deleted.
      */
     public Set<URI> deleteAllWithMetadata(Map<String, String> keysValues) {
-        return deleteDocuments(this.searchByMetadata(keysValues));
+        return deleteDocumentsAddingUndo(this.searchByMetadata(keysValues));
     }
     /**
      * Completely remove any trace of any document which contains the given keyword AND which has the given key-value pairs in its metadata
@@ -275,7 +290,7 @@ public class DocumentStoreImpl implements DocumentStore {
      * @return a Set of URIs of the documents that were deleted.
      */
     public Set<URI> deleteAllWithKeywordAndMetadata(String keyword, Map<String, String> keysValues) {
-        return deleteDocuments(this.searchByKeywordAndMetadata(keyword, keysValues));
+        return deleteDocumentsAddingUndo(this.searchByKeywordAndMetadata(keyword, keysValues));
     }
     /**
      * Completely remove any trace of any document which contains a word that has the given prefix AND which has the given key-value pairs in its metadata
@@ -285,16 +300,18 @@ public class DocumentStoreImpl implements DocumentStore {
      * @return a Set of URIs of the documents that were deleted.
      */
     public Set<URI> deleteAllWithPrefixAndMetadata(String keywordPrefix, Map<String, String> keysValues) {
-        return deleteDocuments(searchByPrefixAndMetadata(keywordPrefix, keysValues));
+        return deleteDocumentsAddingUndo(searchByPrefixAndMetadata(keywordPrefix, keysValues));
     }
-    private Set<URI> deleteDocuments(List<Document> toDelete) {
+    private Set<URI> deleteDocumentsAddingUndo(List<Document> toDelete) {
         Set<URI> deletedURIs = new HashSet<>();
         CommandSet<URI> undelete = new CommandSet<>();
         for (Document doc : toDelete) {
             Set<String> metaDataKeys = doc.getMetadata().keySet();
             deletedURIs.add(doc.getKey());
             undelete.addCommand(new GenericCommand<>(doc.getKey(), uri -> {
-                this.table.put((URI) doc.getKey(), doc);
+                this.useTimes.insert(doc);
+                this.updateDocsNanoTime(toDelete);
+                this.table.put(doc.getKey(), doc);
                 this.addTextToTrie(doc);
                 for (String dataPoint : metaDataKeys) {
                     metaData.put(dataPoint, doc);
@@ -302,6 +319,7 @@ public class DocumentStoreImpl implements DocumentStore {
                 }
             }));
             commandStack.push(undelete);
+            this.deleteFromHeap(doc);
             this.table.put(doc.getKey(), null);
             Set<String> words = doc.getWords();
             for (String word : words) {
@@ -312,6 +330,26 @@ public class DocumentStoreImpl implements DocumentStore {
             }
         }
         return deletedURIs;
+    }
+    private void deleteDocumentsTotally(Document doc) {
+        boolean noMoreUndos = false;
+        while (!noMoreUndos){
+            try{
+                this.undo(doc.getKey());
+            }catch (IllegalStateException e){
+                noMoreUndos = true;
+            }
+        }
+        this.table.put(doc.getKey(), null);
+        Set<String> words = doc.getWords();
+        for (String word : words) {
+            docsText.delete(word, doc);
+        }
+        Set<String> metaDataKeys = doc.getMetadata().keySet();
+        for (String dataPoint : metaDataKeys) {
+            metaData.delete(dataPoint, doc);
+        }
+        this.deleteFromHeap(doc);
     }
     /**
      * set maximum number of documents that may be stored
@@ -326,6 +364,34 @@ public class DocumentStoreImpl implements DocumentStore {
      * @throws IllegalArgumentException if limit < 1
      */
     void setMaxDocumentBytes(int limit);
+    private void updateDocsNanoTime(List<Document> docs){
+        long time = System.nanoTime();
+        for(Document doc : docs) {
+            doc.setLastUseTime(time);
+            this.useTimes.reHeapify(doc);
+        }
+    }
+    private void deleteFromHeap(Document doc){
+        LinkedList<Document> removedItems = new LinkedList<>();
+        boolean notFound = true;
+        try{
+            while(notFound) {
+                Document removedDoc = this.useTimes.remove();
+                if (doc.equals(removedDoc)){
+                    notFound = false;
+                    for (Document item : removedItems){
+                        this.useTimes.insert(item);
+                    }
+                }else{
+                    removedItems.add(removedDoc);
+                }
+            }
+        }catch(NoSuchElementException e){
+            for (Document item : removedItems){
+                this.useTimes.insert(item);
+            }
+        }
+    }
     private class DocumentComparator implements Comparator<Document> {
         private String keyword;
         public DocumentComparator(String keyword) {

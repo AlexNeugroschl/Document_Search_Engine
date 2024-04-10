@@ -122,7 +122,7 @@ public class DocumentImpl implements Document{
     public int compareTo(Document doc){
         long thisDocTime = this.getLastUseTime();
         long otherDocTime = doc.getLastUseTime();
-        if (thisDocTime > otherDocTime){
+        if (thisDocTime < otherDocTime){
             return -1;
         }else if (thisDocTime == otherDocTime){
             return 0;
@@ -145,7 +145,7 @@ public class DocumentImpl implements Document{
      * @return all the words that appear in the document
      */
     public Set<String> getWords(){
-        return (Set<String>) wordCountTable.keySet();
+        return this.wordCountTable.keySet();
     }
     /**
      * return the last time this document was used, via put/get or via a search result
