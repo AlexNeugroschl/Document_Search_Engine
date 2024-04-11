@@ -92,10 +92,12 @@ public class DocumentStoreImpl implements DocumentStore {
             this.delete(original.getKey());
         }
         this.addToStore(doc);
-        commandStack.push(new GenericCommand<>(uri, url -> {
+        CommandSet<URI> undoCMD = new CommandSet<>();
+        undoCMD.addCommand(new GenericCommand<>(uri, url -> {
             this.delete(doc.getKey());
             this.addToStore(original);
         }));
+        commandStack.push(undoCMD);
         return original == null ? 0 : original.hashCode();
 
     }
@@ -372,9 +374,10 @@ public class DocumentStoreImpl implements DocumentStore {
         if (doc == null){
             return;
         }
-        if ((doc.getDocumentTxt() == null && doc.getDocumentBinaryData().length >= this.maxBytes) || (doc.getDocumentTxt() != null && doc.getDocumentTxt().getBytes().length >= maxBytes)){
+        if ((this.maxBytes != 0 && doc.getDocumentTxt() == null && doc.getDocumentBinaryData().length >= this.maxBytes) || (this.maxBytes != 0 && doc.getDocumentTxt() != null && doc.getDocumentTxt().getBytes().length >= maxBytes)){
             throw new IllegalArgumentException("Document exceeds max bytes");
         }
+        this.useTimes.insert(doc);
         this.updateDocsNanoTime(Arrays.asList(doc));
         this.table.put(doc.getKey(), doc);
         Set<String> words = doc.getWords();
@@ -385,12 +388,11 @@ public class DocumentStoreImpl implements DocumentStore {
         for (String dataPoint : metaDataKeys) {
             metaData.put(dataPoint, doc);
         }
-        this.useTimes.insert(doc);
         this.bytesCount += doc.getDocumentTxt() == null ? doc.getDocumentBinaryData().length : doc.getDocumentTxt().getBytes().length;
         this.maintainMemory();
     }
     private void maintainMemory(){
-        while (this.table.size() > maxDocs || this.bytesCount > maxBytes){
+        while ((maxDocs != 0 && this.table.size() > maxDocs) || (this.maxBytes != 0 && this.bytesCount > maxBytes)){
             deleteDocumentsTotally(this.useTimes.remove());
         }
     }

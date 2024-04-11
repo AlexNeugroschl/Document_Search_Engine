@@ -24,14 +24,9 @@ public class DocumentImpl implements Document{
         this.txt = txt;
         this.uri = uri;
         String[] words = txt.split(" ");
-        for(String word : words){
-            char[] letters = word.toCharArray();
-            for(char letter : letters){
-                if((letter < 47) || (letter > 57 && letter < 65) || (letter > 90 && letter < 97) || (letter > 122)){
-                    letter = ' ';
-                }
-            }
-            wordCountTable.put(new String(letters).replace(" ", ""), wordCountTable.get(new String(letters).replace(" ", "")));
+        for(int i = 0; i < words.length; i++){
+            words[i] = words[i].replaceAll("\\W", "");
+            wordCountTable.put(words[i], wordCountTable.get(words[i]) == null ? 1 : wordCountTable.get(words[i])+1);
         }
     }
     public DocumentImpl(URI uri, byte[] binaryData){
