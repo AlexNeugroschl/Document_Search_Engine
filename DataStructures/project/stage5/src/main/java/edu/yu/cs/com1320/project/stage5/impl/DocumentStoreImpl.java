@@ -7,18 +7,26 @@ import java.net.URI;
 import java.util.*;
 import edu.yu.cs.com1320.project.undo.*;
 
+import javax.print.Doc;
+
 public class DocumentStoreImpl implements DocumentStore {
     HashTableImpl<URI, Document> table;
     StackImpl<Undoable> commandStack;
     TrieImpl<Document> docsText;
     TrieImpl<Document> metaData;
     MinHeapImpl<Document> useTimes;
+    int maxDocs;
+    int maxBytes;
+    int bytesCount;
     public DocumentStoreImpl() {
         this.table = new HashTableImpl<>();
         this.commandStack = new StackImpl<>();
         this.docsText = new TrieImpl<>();
         this.metaData = new TrieImpl<>();
         this.useTimes = new MinHeapImpl<>();
+        this.maxDocs = 0;
+        this.maxBytes = 0;
+        this.bytesCount = 0;
     }
     /**
      * set the given key-value metadata pair for the document at the given uri
@@ -65,7 +73,6 @@ public class DocumentStoreImpl implements DocumentStore {
      * @throws IllegalArgumentException if uri is null or empty, or format is null
      */
     public int put(InputStream input, URI uri, DocumentFormat format) throws IOException {
-        byte[] bytes;
         if (uri == null || uri.toString().isBlank() || format == null) {
             throw new IllegalArgumentException("DocumentStore Put error");
         }
@@ -73,31 +80,26 @@ public class DocumentStoreImpl implements DocumentStore {
             Document deleted = this.table.get(uri);
             return this.delete(uri) ? deleted.hashCode() : 0;
         }
+        byte[] bytes;
         try{
             bytes = input.readAllBytes();
         } catch (IOException e) {
             throw new IOException("DocumentStoreImpl IOE exception");
         }
         DocumentImpl doc = format == DocumentFormat.TXT ? new DocumentImpl(uri, new String(bytes)) : new DocumentImpl(uri, bytes);
-        if (format == DocumentFormat.TXT) {
-            this.addTextToTrie(doc);
-        }
-        this.useTimes.insert(doc);
         Document original = table.put(uri, doc);
-        commandStack.push(new GenericCommand<>(uri, url -> { // NEEDS MORE UNDO FEATURES ********************
-            this.table.put(url, original);
-            this.updateDocsNanoTime(Arrays.asList(original));
+        if (original != null){
+            this.delete(original.getKey());
+        }
+        this.addToStore(doc);
+        commandStack.push(new GenericCommand<>(uri, url -> {
+            this.delete(doc.getKey());
+            this.addToStore(original);
         }));
-        this.updateDocsNanoTime(Arrays.asList(doc));
         return original == null ? 0 : original.hashCode();
 
     }
-    private void addTextToTrie(Document doc) {
-        Set<String> words = doc.getWords();
-        for (String word : words) {
-            this.docsText.put(word, doc);
-        }
-    }
+
     /**
      * @param url the unique identifier of the document to get
      * @return the given document
@@ -306,28 +308,10 @@ public class DocumentStoreImpl implements DocumentStore {
         Set<URI> deletedURIs = new HashSet<>();
         CommandSet<URI> undelete = new CommandSet<>();
         for (Document doc : toDelete) {
-            Set<String> metaDataKeys = doc.getMetadata().keySet();
             deletedURIs.add(doc.getKey());
-            undelete.addCommand(new GenericCommand<>(doc.getKey(), uri -> {
-                this.useTimes.insert(doc);
-                this.updateDocsNanoTime(toDelete);
-                this.table.put(doc.getKey(), doc);
-                this.addTextToTrie(doc);
-                for (String dataPoint : metaDataKeys) {
-                    metaData.put(dataPoint, doc);
-                    doc.setMetadataValue(dataPoint, doc.getMetadataValue(dataPoint));
-                }
-            }));
+            undelete.addCommand(new GenericCommand<>(doc.getKey(), uri -> this.addToStore(doc)));
             commandStack.push(undelete);
-            this.deleteFromHeap(doc);
-            this.table.put(doc.getKey(), null);
-            Set<String> words = doc.getWords();
-            for (String word : words) {
-                docsText.delete(word, doc);
-            }
-            for (String dataPoint : metaDataKeys) {
-                metaData.delete(dataPoint, doc);
-            }
+            this.deleteFromStore(doc);
         }
         return deletedURIs;
     }
@@ -340,6 +324,39 @@ public class DocumentStoreImpl implements DocumentStore {
                 noMoreUndos = true;
             }
         }
+        this.deleteFromStore(doc);
+    }
+    /**
+     * set maximum number of documents that may be stored
+     * @param limit
+     * @throws IllegalArgumentException if limit < 1
+     */
+    public void setMaxDocumentCount(int limit){
+        if (limit < 1){
+            throw new IllegalArgumentException("Cannot be less than 1");
+        }
+        this.maxDocs = limit;
+    }
+
+    /**
+     * set maximum number of bytes of memory that may be used by all the documents in memory combined
+     * @param limit
+     * @throws IllegalArgumentException if limit < 1
+     */
+    public void setMaxDocumentBytes(int limit){
+        if (limit < 1){
+            throw new IllegalArgumentException("Cannot be less than 1");
+        }
+        this.maxBytes = limit;
+    }
+    private void updateDocsNanoTime(List<Document> docs){
+        long time = System.nanoTime();
+        for(Document doc : docs) {
+            doc.setLastUseTime(time);
+            this.useTimes.reHeapify(doc);
+        }
+    }
+    private void deleteFromStore(Document doc){
         this.table.put(doc.getKey(), null);
         Set<String> words = doc.getWords();
         for (String word : words) {
@@ -351,24 +368,30 @@ public class DocumentStoreImpl implements DocumentStore {
         }
         this.deleteFromHeap(doc);
     }
-    /**
-     * set maximum number of documents that may be stored
-     * @param limit
-     * @throws IllegalArgumentException if limit < 1
-     */
-    void setMaxDocumentCount(int limit);
-
-    /**
-     * set maximum number of bytes of memory that may be used by all the documents in memory combined
-     * @param limit
-     * @throws IllegalArgumentException if limit < 1
-     */
-    void setMaxDocumentBytes(int limit);
-    private void updateDocsNanoTime(List<Document> docs){
-        long time = System.nanoTime();
-        for(Document doc : docs) {
-            doc.setLastUseTime(time);
-            this.useTimes.reHeapify(doc);
+    private void addToStore(Document doc){
+        if (doc == null){
+            return;
+        }
+        if ((doc.getDocumentTxt() == null && doc.getDocumentBinaryData().length >= this.maxBytes) || (doc.getDocumentTxt() != null && doc.getDocumentTxt().getBytes().length >= maxBytes)){
+            throw new IllegalArgumentException("Document exceeds max bytes");
+        }
+        this.updateDocsNanoTime(Arrays.asList(doc));
+        this.table.put(doc.getKey(), doc);
+        Set<String> words = doc.getWords();
+        for (String word : words) {
+            docsText.put(word, doc);
+        }
+        Set<String> metaDataKeys = doc.getMetadata().keySet();
+        for (String dataPoint : metaDataKeys) {
+            metaData.put(dataPoint, doc);
+        }
+        this.useTimes.insert(doc);
+        this.bytesCount += doc.getDocumentTxt() == null ? doc.getDocumentBinaryData().length : doc.getDocumentTxt().getBytes().length;
+        this.maintainMemory();
+    }
+    private void maintainMemory(){
+        while (this.table.size() > maxDocs || this.bytesCount > maxBytes){
+            deleteDocumentsTotally(this.useTimes.remove());
         }
     }
     private void deleteFromHeap(Document doc){
