@@ -115,7 +115,7 @@ public class TrieImplTest {
         assertEquals(0, trie.get("AlexNeugroschl4").size());
     }
     @Test
-    public void deleteAllTest(){
+    public void deleteAllTest1(){
         Trie<String> trie = new TrieImpl<>();
         trie.put("Alex", "Value1");
         trie.put("Alex", "Value2");
@@ -133,6 +133,26 @@ public class TrieImplTest {
         trie.put("Alexander", "Value13");
         Set<String> words = trie.deleteAll("Alexander");
         assertEquals(0, trie.get("Alexander").size());
+    }
+    @Test
+    public void deleteAllTest2(){
+        Trie<String> trie = new TrieImpl<>();
+        trie.put("Alex", "Value1");
+        trie.put("Alex", "Value2");
+        trie.put("Alex", "Value3");
+        trie.put("AlexNeugroschl1", "Value4");
+        trie.put("AlexNeugroschl2", "Value5");
+        trie.put("AlexNeugroschl3", "Value6");
+        trie.put("AlexNeugroschl4", "Value7");
+        trie.put("AlexNeug1", "Value7");
+        trie.put("AlexNeug2", "Value8");
+        trie.put("AlexNeug3", "Value9");
+        trie.put("AlexNeug4", "Value10");
+        trie.put("Alexander", "Value11");
+        trie.put("Alexander", "Value12");
+        trie.put("Alexander", "Value13");
+        Set<String> words = trie.deleteAll("Alexander");
+        assertEquals(3, words.size());
     }
     @Test
     public void deleteTest(){

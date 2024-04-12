@@ -29,17 +29,6 @@ public class HashTableTest{
         ByteArrayInputStream input = new ByteArrayInputStream(bytes);
         DocumentStore.DocumentFormat format = DocumentStore.DocumentFormat.TXT;
         DocumentStore.DocumentFormat otherFormat = DocumentStore.DocumentFormat.BINARY;
-        //byte[] Otherbytes = input.readAllBytes();
-        //System.out.println(new String(Otherbytes));
-        //System.out.println(new String(Otherbytes).isBlank());
-        // DocumentImpl doc = new DocumentImpl(uri, text);
-        /* byte[] reconstructedBytes = input.readAllBytes();
-        String OtherText = new String(reconstructedBytes);
-        System.out.println(OtherText);
-        System.out.println(OtherText);
-        System.out.println(text.isBlank());
-        System.out.println(text.isBlank());
-         */
         store1.put(input, uri2, format);
         input.reset();
         store1.put(input, uri2, otherFormat);

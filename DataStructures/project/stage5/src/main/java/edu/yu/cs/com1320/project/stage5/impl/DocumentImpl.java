@@ -37,6 +37,7 @@ public class DocumentImpl implements Document{
         this.binaryData = binaryData;
         this.uri = uri;
         this.txt = null;
+        this.wordCountTable = new HashMap<>();
     }
     /**
      * @param key   key of document metadata to store a value for
@@ -130,9 +131,6 @@ public class DocumentImpl implements Document{
      * @return the number of times the given words appears in the document. If it's a binary document, return 0.
      */
     public int wordCount(String word){
-        if (wordCountTable == null){
-            return 0;
-        }
         return wordCountTable.get(word) == null ? 0 : wordCountTable.get(word);
     }
 

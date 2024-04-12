@@ -87,14 +87,14 @@ public class DocumentStoreImpl implements DocumentStore {
             throw new IOException("DocumentStoreImpl IOE exception");
         }
         DocumentImpl doc = format == DocumentFormat.TXT ? new DocumentImpl(uri, new String(bytes)) : new DocumentImpl(uri, bytes);
-        Document original = table.put(uri, doc);
+        Document original = table.get(uri);
         if (original != null){
             this.delete(original.getKey());
         }
         this.addToStore(doc);
         CommandSet<URI> undoCMD = new CommandSet<>();
         undoCMD.addCommand(new GenericCommand<>(uri, url -> {
-            this.delete(doc.getKey());
+            this.deleteFromStore(doc);
             this.addToStore(original);
         }));
         commandStack.push(undoCMD);
@@ -108,7 +108,9 @@ public class DocumentStoreImpl implements DocumentStore {
      */
     public Document get(URI url) {
         Document doc = table.get(url);
-        this.updateDocsNanoTime(Arrays.asList(doc));
+        if (doc != null) {
+            this.updateDocsNanoTime(Arrays.asList(doc));
+        }
         return doc;
     }
     /**
@@ -229,7 +231,7 @@ public class DocumentStoreImpl implements DocumentStore {
                 docs = metaData.get(key);
             }
             for (Document doc : docs) {
-                if (!doc.getMetadataValue(key).equals(keysValues.get(key))) {
+                if (doc.getMetadataValue(key) != null && !doc.getMetadataValue(key).equals(keysValues.get(key))) {
                     docs.remove(doc);
                 }
             }
@@ -326,7 +328,6 @@ public class DocumentStoreImpl implements DocumentStore {
                 noMoreUndos = true;
             }
         }
-        this.deleteFromStore(doc);
     }
     /**
      * set maximum number of documents that may be stored
@@ -338,6 +339,7 @@ public class DocumentStoreImpl implements DocumentStore {
             throw new IllegalArgumentException("Cannot be less than 1");
         }
         this.maxDocs = limit;
+        this.maintainMemory();
     }
 
     /**
@@ -350,6 +352,7 @@ public class DocumentStoreImpl implements DocumentStore {
             throw new IllegalArgumentException("Cannot be less than 1");
         }
         this.maxBytes = limit;
+        this.maintainMemory();
     }
     private void updateDocsNanoTime(List<Document> docs){
         long time = System.nanoTime();
@@ -358,7 +361,10 @@ public class DocumentStoreImpl implements DocumentStore {
             this.useTimes.reHeapify(doc);
         }
     }
-    private void deleteFromStore(Document doc){
+    private void deleteFromStore(Document doc) {
+        if (this.table.get(doc.getKey()) != null){
+            this.bytesCount -= doc.getDocumentTxt() == null ? doc.getDocumentBinaryData().length : doc.getDocumentTxt().getBytes().length;
+        }
         this.table.put(doc.getKey(), null);
         Set<String> words = doc.getWords();
         for (String word : words) {

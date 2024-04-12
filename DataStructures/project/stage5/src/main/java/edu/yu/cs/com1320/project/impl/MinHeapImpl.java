@@ -25,7 +25,7 @@ public class MinHeapImpl<E extends Comparable<E>> extends MinHeap<E>{
     }
     @Override
     protected void doubleArraySize(){
-        E[] temp = (E[])new Object[this.elements.length * 2];
+        E[] temp = (E[])new Comparable[this.elements.length * 2];
         for (int i = 1; i < this.elements.length; i++){
             temp[i] = this.elements[i];
         }

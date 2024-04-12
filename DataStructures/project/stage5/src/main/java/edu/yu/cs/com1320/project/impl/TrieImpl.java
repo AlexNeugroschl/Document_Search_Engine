@@ -60,8 +60,8 @@ public class TrieImpl<Value> implements Trie<Value> {
      * @return a Set of matching Values. Empty set if no matches.
      */
     public Set<Value> get(String key) {
-        Node node = this.getNode(this.root, key, 0);
-        return node == null ? (Set<Value>) new HashSet<Value>() : node.vals;
+        Node<Value> node = this.getNode(this.root, key, 0);
+        return node == null ? new HashSet<>() : new HashSet<>(node.vals);
     }
 
     private Node<Value> getNode(Node<Value> x, String key, int d) {
@@ -86,16 +86,22 @@ public class TrieImpl<Value> implements Trie<Value> {
      * @return a List of all matching Values containing the given prefix, in descending order. Empty List if no matches.
      */
     public List<Value> getAllWithPrefixSorted(String prefix, Comparator<Value> comparator) {
-        Node endOfPrefix = getNode(this.root, prefix, 0);
+        Node<Value> endOfPrefix = getNode(this.root, prefix, 0);
         List<Value> values = getAllWithPrefixSortedLogic(endOfPrefix);
+        if (endOfPrefix == null){
+            return values;
+        }
         values.addAll(endOfPrefix.vals);
         values.sort(comparator);
         return values;
     }
 
-    private List<Value> getAllWithPrefixSortedLogic(Node theRest) {
+    private List<Value> getAllWithPrefixSortedLogic(Node<Value> theRest) {
         List<Value> list = new LinkedList<>();
-        for (Node letter : theRest.links) {
+        if (theRest == null){
+            return new LinkedList<>();
+        }
+        for (Node<Value> letter : theRest.links) {
             if (letter != null) {
                 list.addAll(letter.vals);
                 list.addAll(getAllWithPrefixSortedLogic(letter));
@@ -112,12 +118,15 @@ public class TrieImpl<Value> implements Trie<Value> {
      * @return a Set of all Values that were deleted.
      */
     public Set<Value> deleteAllWithPrefix(String prefix) {
-        Node endOfPrefix = getNode(this.root, prefix, 0);
+        Node<Value> endOfPrefix = getNode(this.root, prefix, 0);
         Set<Value> set = new HashSet<>();
+        if (endOfPrefix == null){
+            return set;
+        }
         set.addAll(getAllWithPrefixSortedLogic(endOfPrefix));
         set.addAll(endOfPrefix.vals);
         Arrays.fill(endOfPrefix.links, null);
-        deleteExcess(this.root, prefix, 0);
+        //deleteExcess(this.root, prefix, 0);
         return set;
     }
 
@@ -130,8 +139,11 @@ public class TrieImpl<Value> implements Trie<Value> {
     public Set<Value> deleteAll(String key) {
         Set<Value> set = this.get(key);
         Node<Value> deleted = this.getNode(this.root, key, 0);
+        if (deleted == null){
+            return set;
+        }
         deleted.vals.clear();
-        deleteExcess(this.root, key, 0);
+        //deleteExcess(this.root, key, 0);
         return set;
     }
 
@@ -144,14 +156,17 @@ public class TrieImpl<Value> implements Trie<Value> {
      */
     public Value delete(String key, Value val) {
         Node<Value> node = this.getNode(this.root, key, 0);
+        if (node == null){
+            return null;
+        }
         if (node.vals.size() == 1 && node.vals.contains(val)) {
             node.vals.remove(val);
-            deleteExcess(this.root, key, 0);
+            //deleteExcess(this.root, key, 0);
             return val;
         }
         return node.vals.remove(val) ? val : null;
     }
-
+/*
     private void deleteExcess(Node<Value> node, String key, int d) {
         char c = key.charAt(d);
         if (d < key.length() - 1) {
@@ -168,6 +183,8 @@ public class TrieImpl<Value> implements Trie<Value> {
             node.links[c] = null;
         }
     }
+
+ */
 /* public Node<Value> deleteExcessWorksTest(String key) {
         return this.getNode(this.root, key, 0);
     }*/
