@@ -194,6 +194,25 @@ public class TrieImplTest {
         Set<String> word = trie.deleteAllWithPrefix("AlexNeugr");
         assertEquals(1, trie.get("AlexNeug1").size());
     }
+    @Test
+    public void getNonexistentItem(){
+        Trie<String> trie = new TrieImpl<>();
+        trie.put("Alex", "Value1");
+        trie.put("Alex", "Value2");
+        trie.put("Alex", "Value3");
+        trie.put("AlexNeugroschl1", "Value4");
+        trie.put("AlexNeugroschl2", "Value5");
+        trie.put("AlexNeugroschl3", "Value6");
+        trie.put("AlexNeugroschl4", "Value7");
+        trie.put("AlexNeug1", "Value7");
+        trie.put("AlexNeug2", "Value8");
+        trie.put("AlexNeug3", "Value9");
+        trie.put("AlexNeug4", "Value10");
+        trie.put("Alexander", "Value11");
+        trie.put("Alexander", "Value12");
+        trie.put("Alexander", "Value13");
+        assertEquals(0, trie.get("AlexNeug16789").size());
+    }
     /*
     TESTS RELY ON COMMENTED OUT METHOD
     @Test
