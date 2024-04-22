@@ -41,7 +41,7 @@ public class DocumentStoreImpl implements DocumentStore {
         if (uri == null || uri.toString().isBlank() || key == null || key.isBlank() || table.get(uri) == null) {
             throw new IllegalArgumentException("DocumentStore setMetaData error");
         }
-        String oldValue = getMetadata(uri, key);
+        String oldValue = this.getMetadata(uri, key);
         commandStack.push(new GenericCommand<>(uri, url -> this.get(url).setMetadataValue(key, oldValue)));
         if (value != null) {
             this.metaData.put(key, this.get(uri));
@@ -87,7 +87,7 @@ public class DocumentStoreImpl implements DocumentStore {
             throw new IOException("DocumentStoreImpl IOE exception");
         }
         DocumentImpl doc = format == DocumentFormat.TXT ? new DocumentImpl(uri, new String(bytes)) : new DocumentImpl(uri, bytes);
-        Document original = table.get(uri);
+        Document original = this.table.get(uri);
         if (original != null){
             this.delete(original.getKey());
         }
@@ -314,7 +314,7 @@ public class DocumentStoreImpl implements DocumentStore {
         for (Document doc : toDelete) {
             deletedURIs.add(doc.getKey());
             undelete.addCommand(new GenericCommand<>(doc.getKey(), uri -> this.addToStore(doc)));
-            commandStack.push(undelete);
+            commandStack.push(undelete); //NEEDS TO BE OUTSIDE THE LOOP, AFTER IT *************************************
             this.deleteFromStore(doc);
         }
         return deletedURIs;
@@ -368,11 +368,11 @@ public class DocumentStoreImpl implements DocumentStore {
         this.table.put(doc.getKey(), null);
         Set<String> words = doc.getWords();
         for (String word : words) {
-            docsText.delete(word, doc);
+            this.docsText.delete(word, doc);
         }
         Set<String> metaDataKeys = doc.getMetadata().keySet();
         for (String dataPoint : metaDataKeys) {
-            metaData.delete(dataPoint, doc);
+            this.metaData.delete(dataPoint, doc);
         }
         this.deleteFromHeap(doc);
     }
@@ -399,7 +399,7 @@ public class DocumentStoreImpl implements DocumentStore {
     }
     private void maintainMemory(){
         while ((maxDocs != 0 && this.table.size() > maxDocs) || (this.maxBytes != 0 && this.bytesCount > maxBytes)){
-            deleteDocumentsTotally(this.useTimes.remove());
+            deleteDocumentsTotally(this.useTimes.peek());
         }
     }
     private void deleteFromHeap(Document doc){
