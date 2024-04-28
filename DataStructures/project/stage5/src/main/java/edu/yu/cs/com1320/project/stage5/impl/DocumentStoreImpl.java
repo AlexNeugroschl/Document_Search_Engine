@@ -38,11 +38,16 @@ public class DocumentStoreImpl implements DocumentStore {
      * @throws IllegalArgumentException if the uri is null or blank, if there is no document stored at that uri, or if the key is null or blank
      */
     public String setMetadata(URI uri, String key, String value) {
-        if (uri == null || uri.toString().isBlank() || key == null || key.isBlank() || table.get(uri) == null) {
+        if (uri == null || uri.toString().isBlank() || key == null || key.isBlank() || this.table.get(uri) == null) {
             throw new IllegalArgumentException("DocumentStore setMetaData error");
         }
         String oldValue = this.getMetadata(uri, key);
-        commandStack.push(new GenericCommand<>(uri, url -> this.get(url).setMetadataValue(key, oldValue)));
+        commandStack.push(new GenericCommand<>(uri, url -> {
+            this.get(url).setMetadataValue(key, oldValue);
+            if (oldValue == null) {
+                this.metaData.delete(key, this.get(uri));
+            }
+        }));
         if (value != null) {
             this.metaData.put(key, this.get(uri));
         } else {
@@ -217,7 +222,7 @@ public class DocumentStoreImpl implements DocumentStore {
      * @return a Set of URIs of the documents that were deleted.
      */
     public Set<URI> deleteAllWithPrefix(String keywordPrefix) {
-        return deleteDocumentsAddingUndo(docsText.getAllWithPrefixSorted(keywordPrefix, new DocumentComparator(keywordPrefix)));
+        return deleteDocumentsAddingUndo(this.docsText.getAllWithPrefixSorted(keywordPrefix, new DocumentComparator(keywordPrefix)));
     }
     /**
      * @param keysValues metadata key-value pairs to search for
@@ -228,7 +233,7 @@ public class DocumentStoreImpl implements DocumentStore {
         Set<Document> docs = null;
         for (String key : keys) {
             if (docs == null) {
-                docs = metaData.get(key);
+                docs = this.metaData.get(key);
             }
             for (Document doc : docs) {
                 if (doc.getMetadataValue(key) != null && !doc.getMetadataValue(key).equals(keysValues.get(key))) {
