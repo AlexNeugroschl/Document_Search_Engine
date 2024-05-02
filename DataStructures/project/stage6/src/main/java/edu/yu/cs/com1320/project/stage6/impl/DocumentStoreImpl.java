@@ -89,7 +89,7 @@ public class DocumentStoreImpl implements DocumentStore {
         } catch (IOException e) {
             throw new IOException("DocumentStoreImpl IOE exception");
         }
-        DocumentImpl doc = format == DocumentFormat.TXT ? new DocumentImpl(uri, new String(bytes)) : new DocumentImpl(uri, bytes);
+        DocumentImpl doc = format == DocumentFormat.TXT ? new DocumentImpl(uri, new String(bytes), null) : new DocumentImpl(uri, bytes);
         Document original = this.table.get(uri);
         if (original != null){
             this.delete(original.getKey());

@@ -310,7 +310,7 @@ public class DocumentStoreImplTest {
         ByteArrayInputStream otherInput = new ByteArrayInputStream(otherBytes);
         DocumentStore.DocumentFormat format = DocumentStore.DocumentFormat.TXT;
         store.put(input, uri, format);
-        DocumentImpl doc = new DocumentImpl(uri, text);
+        DocumentImpl doc = new DocumentImpl(uri, text, null);
         int docHash = doc.hashCode();
         assertEquals(docHash, store.put(otherInput, uri, format));
     }
@@ -339,7 +339,7 @@ public class DocumentStoreImplTest {
         byte[] bytes = text.getBytes();
         ByteArrayInputStream input = new ByteArrayInputStream(bytes);
         DocumentStore.DocumentFormat format = DocumentStore.DocumentFormat.TXT;
-        DocumentImpl doc = new DocumentImpl(uri, text);
+        DocumentImpl doc = new DocumentImpl(uri, text, null);
         int docHash = doc.hashCode();
         ByteArrayInputStream nullInput = null;
         store.put(input, uri, format);
@@ -365,7 +365,7 @@ public class DocumentStoreImplTest {
         ByteArrayInputStream input = new ByteArrayInputStream(bytes);
         DocumentStore.DocumentFormat format = DocumentStore.DocumentFormat.TXT;
         store.put(input, uri, format);
-        DocumentImpl doc = new DocumentImpl(uri, text);
+        DocumentImpl doc = new DocumentImpl(uri, text, null);
         assertEquals(true, doc.hashCode() == store.get(uri).hashCode());
     }
     @Test
@@ -408,7 +408,7 @@ public class DocumentStoreImplTest {
         URI uri = new URI("https://www.geeksforgeeks.org/url-class-java-examples/");
         String text = "This is the text of the doc";
         DocumentStore.DocumentFormat format = DocumentStore.DocumentFormat.TXT;
-        DocumentImpl doc = new DocumentImpl(uri, text);
+        DocumentImpl doc = new DocumentImpl(uri, text, null);
         int docHash = doc.hashCode();
         assertEquals(docHash, 1632964363);
     }

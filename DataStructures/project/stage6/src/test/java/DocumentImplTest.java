@@ -7,7 +7,7 @@ import java.util.Arrays;
 
 
 import static org.junit.jupiter.api.Assertions.*;
-import edu.yu.cs.com1320.project.stage5.impl.DocumentImpl;
+import edu.yu.cs.com1320.project.stage6.impl.DocumentImpl;
 public class DocumentImplTest {
     @Test
     public void docConstructor1Works(){
@@ -15,7 +15,7 @@ public class DocumentImplTest {
         try{
             uri = new URI("https://www.geeksforgeeks.org/url-class-java-examples/");
             if(uri != null) {
-                DocumentImpl doc = new DocumentImpl(uri, "Text of doc");
+                DocumentImpl doc = new DocumentImpl(uri, "Text of doc", null);
                 assertEquals("Text of doc", doc.getDocumentTxt(), "its broked");
             }
         }catch(URISyntaxException e){
@@ -35,7 +35,7 @@ public class DocumentImplTest {
     public void docConstructor1hashCode() throws URISyntaxException, UnsupportedEncodingException {
         URI uri = new URI("https://www.geeksforgeeks.org/url-class-java-examples/");
         String text = "This is the text of the doc";
-        DocumentImpl doc = new DocumentImpl(uri, text);
+        DocumentImpl doc = new DocumentImpl(uri, text, null);
         int result = uri.hashCode();
         result = 31 * result + (text != null ? text.hashCode() : 0);
         result = 31 * result;
@@ -46,15 +46,15 @@ public class DocumentImplTest {
         URI uri = new URI("https://www.geeksforgeeks.org/url-class-java-examples/");
         String text1 = "This is the text of the doc";
         String text2 = "This is the text of the doc";
-        DocumentImpl doc1 = new DocumentImpl(uri, text1);
-        DocumentImpl doc2 = new DocumentImpl(uri, text2);
+        DocumentImpl doc1 = new DocumentImpl(uri, text1, null);
+        DocumentImpl doc2 = new DocumentImpl(uri, text2, null);
         assertEquals(true, doc1.equals(doc2));
     }
     @Test
     public void getMetadataValueTest() throws URISyntaxException, UnsupportedEncodingException{
         URI uri = new URI("https://www.geeksforgeeks.org/url-class-java-examples/");
         String text = "This is the text of the doc";
-        DocumentImpl doc = new DocumentImpl(uri, text);
+        DocumentImpl doc = new DocumentImpl(uri, text, null);
         doc.setMetadataValue("Author","Myself");
         doc.setMetadataValue("Illustrator","Also Me");
         doc.setMetadataValue("Reader","Also Also Me");
@@ -64,7 +64,7 @@ public class DocumentImplTest {
     public void wordsOnlyContainLettersAndNumbers() throws URISyntaxException, UnsupportedEncodingException{
         URI uri = new URI("https://www.geeksforgeeks.org/url-class-java-examples/");
         String text = "This is the te%xt of the doc";
-        DocumentImpl doc = new DocumentImpl(uri, text);
+        DocumentImpl doc = new DocumentImpl(uri, text, null);
         doc.setMetadataValue("Author","Myself");
         doc.setMetadataValue("Illustrator","Also Me");
         doc.setMetadataValue("Reader","Also Also Me");
@@ -74,7 +74,7 @@ public class DocumentImplTest {
     public void wordsOnlyContainLettersAndNumbers2() throws URISyntaxException, UnsupportedEncodingException{
         URI uri = new URI("https://www.geeksforgeeks.org/url-class-java-examples/");
         String text = "This is the text% of the doc";
-        DocumentImpl doc = new DocumentImpl(uri, text);
+        DocumentImpl doc = new DocumentImpl(uri, text, null);
         doc.setMetadataValue("Author","Myself");
         doc.setMetadataValue("Illustrator","Also Me");
         doc.setMetadataValue("Reader","Also Also Me");
@@ -84,7 +84,7 @@ public class DocumentImplTest {
     public void returnsProperWordCount() throws URISyntaxException, UnsupportedEncodingException{
         URI uri = new URI("https://www.geeksforgeeks.org/url-class-java-examples/");
         String text = "This is the text of the doc";
-        DocumentImpl doc = new DocumentImpl(uri, text);
+        DocumentImpl doc = new DocumentImpl(uri, text, null);
         doc.setMetadataValue("Author","Myself");
         doc.setMetadataValue("Illustrator","Also Me");
         doc.setMetadataValue("Reader","Also Also Me");

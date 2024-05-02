@@ -1,39 +1,41 @@
 package edu.yu.cs.com1320.project.stage6.impl;
 import edu.yu.cs.com1320.project.stage6.*;
-import  edu.yu.cs.com1320.project.impl.HashTableImpl;
-import edu.yu.cs.com1320.project.HashTable;
 import java.net.URI;
 import java.util.Arrays;
-import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.HashMap;
 
 public class DocumentImpl implements Document{
-    HashTableImpl<String, String> metaDataTable;
+    HashMap<String, String> metaDataTable;
     HashMap<String, Integer> wordCountTable;
     String txt;
     byte[] binaryData;
     URI uri;
     long lastUseTime;
-    public DocumentImpl(URI uri, String txt){
+    public DocumentImpl(URI uri, String text, Map<String, Integer> wordCountMap){
         if(uri == null || uri.toString().isBlank()|| txt == null || txt.isBlank()){
             throw new IllegalArgumentException("DocumentImpl constructor 1");
         }
-        this.metaDataTable = new HashTableImpl<>();
+        this.metaDataTable = new HashMap<>();
         this.wordCountTable = new HashMap<>();
-        this.txt = txt;
+        this.txt = text;
         this.uri = uri;
-        String[] words = txt.split(" ");
-        for(int i = 0; i < words.length; i++){
-            words[i] = words[i].replaceAll("\\W", "");
-            wordCountTable.put(words[i], wordCountTable.get(words[i]) == null ? 1 : wordCountTable.get(words[i])+1);
+        if (wordCountMap == null) {
+            String[] words = txt.split(" ");
+            for (int i = 0; i < words.length; i++) {
+                words[i] = words[i].replaceAll("\\W", "");
+                this.wordCountTable.put(words[i], this.wordCountTable.get(words[i]) == null ? 1 : this.wordCountTable.get(words[i]) + 1);
+            }
+        } else {
+            this.wordCountTable = new HashMap<>(wordCountMap);
         }
     }
     public DocumentImpl(URI uri, byte[] binaryData){
         if(uri == null || uri.toString().isBlank()|| binaryData == null || binaryData.length == 0){
             throw new IllegalArgumentException("DocumentImpl constructor 2");
         }
-        this.metaDataTable = new HashTableImpl<>();
+        this.metaDataTable = new HashMap<>();
         this.binaryData = binaryData;
         this.uri = uri;
         this.txt = null;
@@ -67,13 +69,16 @@ public class DocumentImpl implements Document{
     /**
      * @return a COPY of the metadata saved in this document
      */
-    public HashTable<String, String> getMetadata(){
-        HashTableImpl<String, String> tableCopy = new HashTableImpl<>();
+    public HashMap<String, String> getMetadata(){
+        HashMap<String, String> tableCopy = new HashMap<>();
         Set<String> keys = this.metaDataTable.keySet();
         for(String key : keys){
             tableCopy.put(key, this.getMetadataValue(key));
         }
         return tableCopy;
+    }
+    public void setMetadata(HashMap<String, String> metadata){
+        this.metaDataTable = metadata;
     }
 
     /**
@@ -149,5 +154,20 @@ public class DocumentImpl implements Document{
     }
     public void setLastUseTime(long timeInNanoseconds){
         this.lastUseTime = timeInNanoseconds;
+    }
+    /**
+     * @return a copy of the word to count map so it can be serialized
+     */
+    public HashMap<String, Integer> getWordMap(){
+        return new HashMap<>(wordCountTable);
+    }
+
+    /**
+     * This must set the word to count map durlng deserialization
+     *
+     * @param wordMap
+     */
+    public void setWordMap(HashMap<String, Integer> wordMap){
+
     }
 }
