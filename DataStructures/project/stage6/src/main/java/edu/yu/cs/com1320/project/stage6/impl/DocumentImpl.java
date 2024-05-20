@@ -168,6 +168,6 @@ public class DocumentImpl implements Document{
      * @param wordMap
      */
     public void setWordMap(HashMap<String, Integer> wordMap){
-
+        this.wordCountTable = wordMap;
     }
 }

@@ -1,6 +1,8 @@
 package edu.yu.cs.com1320.project.stage6.impl;
 import edu.yu.cs.com1320.project.stage6.*;
 import edu.yu.cs.com1320.project.impl.*;
+
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -8,16 +10,18 @@ import java.util.*;
 import edu.yu.cs.com1320.project.undo.*;
 
 public class DocumentStoreImpl implements DocumentStore {
-    HashTableImpl<URI, Document> table;
+    BTreeImpl<URI, Document> table;
     StackImpl<Undoable> commandStack;
-    TrieImpl<Document> docsText;
+    TrieImpl<URI> docsText;
     TrieImpl<Document> metaData;
     MinHeapImpl<Document> useTimes;
     int maxDocs;
     int maxBytes;
     int bytesCount;
+    int docCount;
     public DocumentStoreImpl() {
-        this.table = new HashTableImpl<>();
+        this.table = new BTreeImpl<>();
+        this.table.setPersistenceManager(new DocumentPersistenceManager(null));
         this.commandStack = new StackImpl<>();
         this.docsText = new TrieImpl<>();
         this.metaData = new TrieImpl<>();
@@ -25,6 +29,11 @@ public class DocumentStoreImpl implements DocumentStore {
         this.maxDocs = 0;
         this.maxBytes = 0;
         this.bytesCount = 0;
+        this.docCount = 0;
+    }
+    public DocumentStoreImpl(File dir) {
+        this();
+        this.table.setPersistenceManager(new DocumentPersistenceManager(dir));
     }
     /**
      * set the given key-value metadata pair for the document at the given uri
@@ -210,7 +219,12 @@ public class DocumentStoreImpl implements DocumentStore {
      * @return a Set of URIs of the documents that were deleted.
      */
     public Set<URI> deleteAll(String keyword) {
-        return deleteDocumentsAddingUndo(new LinkedList<>(docsText.get(keyword)));
+        LinkedList<URI> uris = new LinkedList<>(docsText.get(keyword));
+        LinkedList<Document> docs = new LinkedList<>();
+        for (URI uri : uris){
+            docs.add(this.table.get(uri));
+        }
+        return deleteDocumentsAddingUndo(docs);
     }
     /**
      * Completely remove any trace of any document which contains a word that has the given prefix
@@ -367,6 +381,7 @@ public class DocumentStoreImpl implements DocumentStore {
     private void deleteFromStore(Document doc) {
         if (this.table.get(doc.getKey()) != null){
             this.bytesCount -= doc.getDocumentTxt() == null ? doc.getDocumentBinaryData().length : doc.getDocumentTxt().getBytes().length;
+            this.docCount--;
         }
         this.table.put(doc.getKey(), null);
         Set<String> words = doc.getWords();
@@ -440,5 +455,22 @@ public class DocumentStoreImpl implements DocumentStore {
             }
             return doc1Count == doc2Count ? 0 : 1;
         }
+        /*
+        private class DocumentComparator implements Comparator<URI> {
+        private String keyword;
+        public DocumentComparator(String keyword) {
+            this.keyword = keyword;
+        }
+        @Override
+        public int compare(URI doc1, URI doc2) {
+            int doc1Count = DocumentStoreImpl.this.table.get(doc1).wordCount(this.keyword);
+            int doc2Count = DocumentStoreImpl.this.table.get(doc1).wordCount(this.keyword);
+            if (doc1Count > doc2Count) {
+                return -1;
+            }
+            return doc1Count == doc2Count ? 0 : 1;
+        }
+    }
+         */
     }
 }
