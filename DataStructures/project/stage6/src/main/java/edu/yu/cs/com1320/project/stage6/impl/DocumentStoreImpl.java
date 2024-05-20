@@ -1,7 +1,6 @@
 package edu.yu.cs.com1320.project.stage6.impl;
 import edu.yu.cs.com1320.project.stage6.*;
 import edu.yu.cs.com1320.project.impl.*;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -13,8 +12,8 @@ public class DocumentStoreImpl implements DocumentStore {
     BTreeImpl<URI, Document> table;
     StackImpl<Undoable> commandStack;
     TrieImpl<URI> docsText;
-    TrieImpl<Document> metaData;
-    MinHeapImpl<Document> useTimes;
+    TrieImpl<URI> metaData;
+    MinHeapImpl<HeapEntry> useTimes;
     int maxDocs;
     int maxBytes;
     int bytesCount;
@@ -52,13 +51,13 @@ public class DocumentStoreImpl implements DocumentStore {
         commandStack.push(new GenericCommand<>(uri, url -> {
             this.get(url).setMetadataValue(key, oldValue);
             if (oldValue == null) {
-                this.metaData.delete(key, this.get(uri));
+                this.metaData.delete(key, uri);
             }
         }));
         if (value != null) {
-            this.metaData.put(key, this.get(uri));
+            this.metaData.put(key, uri);
         } else {
-            this.metaData.delete(key, this.get(uri));
+            this.metaData.delete(key, uri);
         }
         return this.get(uri).setMetadataValue(key, value);
     }
@@ -194,7 +193,11 @@ public class DocumentStoreImpl implements DocumentStore {
      * @return a List of the matches. If there are no matches, return an empty list.
      */
     public List<Document> search(String keyword) {
-        List<Document> docs = this.docsText.getSorted(keyword, new DocumentComparator(keyword));
+        List<URI> uris = this.docsText.getSorted(keyword, new DocumentComparator(keyword));
+        List<Document> docs = new LinkedList<>();
+        for (URI uri : uris){
+            docs.add(this.table.get(uri));
+        }
         this.updateDocsNanoTime(docs);
         return docs;
     }
@@ -207,7 +210,11 @@ public class DocumentStoreImpl implements DocumentStore {
      * @return a List of the matches. If there are no matches, return an empty list.
      */
     public List<Document> searchByPrefix(String keywordPrefix) {
-        List<Document> docs = this.docsText.getAllWithPrefixSorted(keywordPrefix, new DocumentComparator(keywordPrefix));
+        List<URI> uris = this.docsText.getAllWithPrefixSorted(keywordPrefix, new DocumentComparator(keywordPrefix));
+        List<Document> docs = new LinkedList<>();
+        for (URI uri : uris){
+            docs.add(this.table.get(uri));
+        }
         this.updateDocsNanoTime(docs);
         return docs;
     }
@@ -234,7 +241,12 @@ public class DocumentStoreImpl implements DocumentStore {
      * @return a Set of URIs of the documents that were deleted.
      */
     public Set<URI> deleteAllWithPrefix(String keywordPrefix) {
-        return deleteDocumentsAddingUndo(this.docsText.getAllWithPrefixSorted(keywordPrefix, new DocumentComparator(keywordPrefix)));
+        List<URI> uris = this.docsText.getAllWithPrefixSorted(keywordPrefix, new DocumentComparator(keywordPrefix));
+        LinkedList<Document> docs = new LinkedList<>();
+        for (URI uri : uris){
+            docs.add(this.table.get(uri));
+        }
+        return deleteDocumentsAddingUndo(docs);
     }
     /**
      * @param keysValues metadata key-value pairs to search for
@@ -245,7 +257,11 @@ public class DocumentStoreImpl implements DocumentStore {
         Set<Document> docs = null;
         for (String key : keys) {
             if (docs == null) {
-                docs = this.metaData.get(key);
+                docs = new HashSet<Document>();
+                Set<URI> uris = this.metaData.get(key);
+                for (URI uri : uris){
+                    docs.add(this.table.get(uri));
+                }
             }
             for (Document doc : docs) {
                 if (doc.getMetadataValue(key) != null && !doc.getMetadataValue(key).equals(keysValues.get(key))) {
@@ -270,7 +286,11 @@ public class DocumentStoreImpl implements DocumentStore {
      */
     public List<Document> searchByKeywordAndMetadata(String keyword, Map<String, String> keysValues) {
         List<Document> matchingMetaData = this.searchByMetadata(keysValues);
-        List<Document> matchingText = new LinkedList<>(this.metaData.get(keyword));
+        List<URI> matchingText = new LinkedList<>(this.metaData.get(keyword));
+        List<Document> textDocs = new LinkedList<>();
+        for (URI uri : matchingText){
+            textDocs.add(this.table.get(uri));
+        }
         for (Document doc : matchingMetaData) {
             if (!matchingText.contains(doc)) {
                 matchingMetaData.remove(doc);
@@ -288,7 +308,7 @@ public class DocumentStoreImpl implements DocumentStore {
      */
     public List<Document> searchByPrefixAndMetadata(String keywordPrefix, Map<String, String> keysValues) {
         List<Document> matchingMetaData = this.searchByMetadata(keysValues);
-        List<Document> matchingPrefixes = docsText.getAllWithPrefixSorted(keywordPrefix, new DocumentComparator(keywordPrefix));
+        List<URI> matchingPrefixes = docsText.getAllWithPrefixSorted(keywordPrefix, new DocumentComparator(keywordPrefix));
         for (Document doc : matchingMetaData) {
             if (!matchingPrefixes.contains(doc)) {
                 matchingMetaData.remove(doc);
@@ -375,7 +395,7 @@ public class DocumentStoreImpl implements DocumentStore {
         long time = System.nanoTime();
         for(Document doc : docs) {
             doc.setLastUseTime(time);
-            this.useTimes.reHeapify(doc);
+            this.useTimes.reHeapify(new HeapEntry(doc.getKey(), doc.getLastUseTime()));
         }
     }
     private void deleteFromStore(Document doc) {
@@ -386,11 +406,11 @@ public class DocumentStoreImpl implements DocumentStore {
         this.table.put(doc.getKey(), null);
         Set<String> words = doc.getWords();
         for (String word : words) {
-            this.docsText.delete(word, doc);
+            this.docsText.delete(word, doc.getKey());
         }
         Set<String> metaDataKeys = doc.getMetadata().keySet();
         for (String dataPoint : metaDataKeys) {
-            this.metaData.delete(dataPoint, doc);
+            this.metaData.delete(dataPoint, doc.getKey());
         }
         this.deleteFromHeap(doc);
     }
@@ -401,34 +421,34 @@ public class DocumentStoreImpl implements DocumentStore {
         if ((this.maxBytes != 0 && doc.getDocumentTxt() == null && doc.getDocumentBinaryData().length >= this.maxBytes) || (this.maxBytes != 0 && doc.getDocumentTxt() != null && doc.getDocumentTxt().getBytes().length >= maxBytes)){
             throw new IllegalArgumentException("Document exceeds max bytes");
         }
-        this.useTimes.insert(doc);
+        this.useTimes.insert(new HeapEntry(doc.getKey(), doc.getLastUseTime()));
         this.updateDocsNanoTime(Arrays.asList(doc));
         this.table.put(doc.getKey(), doc);
         Set<String> words = doc.getWords();
         for (String word : words) {
-            docsText.put(word, doc);
+            docsText.put(word, doc.getKey());
         }
         Set<String> metaDataKeys = doc.getMetadata().keySet();
         for (String dataPoint : metaDataKeys) {
-            metaData.put(dataPoint, doc);
+            metaData.put(dataPoint, doc.getKey());
         }
         this.bytesCount += doc.getDocumentTxt() == null ? doc.getDocumentBinaryData().length : doc.getDocumentTxt().getBytes().length;
         this.maintainMemory();
     }
     private void maintainMemory(){
-        while ((maxDocs != 0 && this.table.size() > maxDocs) || (this.maxBytes != 0 && this.bytesCount > maxBytes)){
-            deleteDocumentsTotally(this.useTimes.peek());
+        while ((maxDocs != 0 && this.docCount > maxDocs) || (this.maxBytes != 0 && this.bytesCount > maxBytes)){
+            deleteDocumentsTotally(this.get(this.useTimes.peek().getURI()));
         }
     }
     private void deleteFromHeap(Document doc){
-        LinkedList<Document> removedItems = new LinkedList<>();
+        LinkedList<HeapEntry> removedItems = new LinkedList<>();
         boolean notFound = true;
         try{
             while(notFound) {
-                Document removedDoc = this.useTimes.remove();
+                HeapEntry removedDoc = this.useTimes.remove();
                 if (doc.equals(removedDoc)){
                     notFound = false;
-                    for (Document item : removedItems){
+                    for (HeapEntry item : removedItems){
                         this.useTimes.insert(item);
                     }
                 }else{
@@ -436,27 +456,12 @@ public class DocumentStoreImpl implements DocumentStore {
                 }
             }
         }catch(NoSuchElementException e){
-            for (Document item : removedItems){
+            for (HeapEntry item : removedItems){
                 this.useTimes.insert(item);
             }
         }
     }
-    private class DocumentComparator implements Comparator<Document> {
-        private String keyword;
-        public DocumentComparator(String keyword) {
-            this.keyword = keyword;
-        }
-        @Override
-        public int compare(Document doc1, Document doc2) {
-            int doc1Count = doc1.wordCount(this.keyword);
-            int doc2Count = doc2.wordCount(this.keyword);
-            if (doc1Count > doc2Count) {
-                return -1;
-            }
-            return doc1Count == doc2Count ? 0 : 1;
-        }
-        /*
-        private class DocumentComparator implements Comparator<URI> {
+    private class DocumentComparator implements Comparator<URI> {
         private String keyword;
         public DocumentComparator(String keyword) {
             this.keyword = keyword;
@@ -471,6 +476,28 @@ public class DocumentStoreImpl implements DocumentStore {
             return doc1Count == doc2Count ? 0 : 1;
         }
     }
-         */
+    private class HeapEntry implements Comparable<HeapEntry> {
+        URI uri;
+        long time;
+        public HeapEntry(URI uri, long time){
+            this.uri = uri;
+            this.time = time;;
+        }
+
+        public long getTime() {
+            return time;
+        }
+        public URI getURI() {
+            return uri;
+        }
+        public int compareTo(HeapEntry entry) {
+            long otherDocTime = entry.getTime();
+            if (this.time < otherDocTime){
+                return -1;
+            }else if (this.time == otherDocTime){
+                return 0;
+            }
+            return 1;
+        }
     }
 }
