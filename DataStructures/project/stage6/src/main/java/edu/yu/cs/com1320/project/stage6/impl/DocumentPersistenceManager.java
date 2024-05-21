@@ -3,7 +3,6 @@ package edu.yu.cs.com1320.project.stage6.impl;
 import com.google.gson.*;
 import edu.yu.cs.com1320.project.stage6.Document;
 import edu.yu.cs.com1320.project.stage6.PersistenceManager;
-
 import javax.xml.bind.DatatypeConverter;
 import java.io.*;
 import java.net.URI;

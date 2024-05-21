@@ -1,5 +1,5 @@
 import edu.yu.cs.com1320.project.impl.MinHeapImpl;
-import edu.yu.cs.com1320.project.stage5.Document;
+import edu.yu.cs.com1320.project.stage6.Document;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 public class MinHeapImplTest {

@@ -87,7 +87,18 @@ public class BTreeImpl<Key extends Comparable<Key>, Value> implements BTree<Key,
         Entry entry = this.get(this.root, key, this.height);
         if(entry != null)
         {
-            return (Value)entry.val;
+            if(entry.val != null) {
+                return (Value) entry.val;
+            }else{
+                try {
+                    Value deserialized = (Value) this.manager.deserialize(key);
+                    this.put(key, deserialized);
+                    this.manager.delete(key);
+                    return deserialized;
+                }catch (IOException e){
+                    throw new RuntimeException("deserialization failed");
+                }
+            }
         }
         return null;
     }
@@ -281,7 +292,8 @@ public class BTreeImpl<Key extends Comparable<Key>, Value> implements BTree<Key,
     }
 
     public void moveToDisk(Key k) throws IOException{
-
+        this.manager.serialize(k, this.get(k));
+        this.put(k, null);
     }
     public void setPersistenceManager(PersistenceManager<Key,Value> pm){
         this.manager = pm;

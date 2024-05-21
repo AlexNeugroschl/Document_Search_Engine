@@ -356,16 +356,6 @@ public class DocumentStoreImpl implements DocumentStore {
         }
         return deletedURIs;
     }
-    private void deleteDocumentsTotally(Document doc) {
-        boolean noMoreUndos = false;
-        while (!noMoreUndos){
-            try{
-                this.undo(doc.getKey());
-            }catch (IllegalStateException e){
-                noMoreUndos = true;
-            }
-        }
-    }
     /**
      * set maximum number of documents that may be stored
      * @param limit
@@ -395,7 +385,30 @@ public class DocumentStoreImpl implements DocumentStore {
         long time = System.nanoTime();
         for(Document doc : docs) {
             doc.setLastUseTime(time);
-            this.useTimes.reHeapify(new HeapEntry(doc.getKey(), doc.getLastUseTime()));
+            this.updateHeapTime(doc.getKey());
+        }
+    }
+    private void updateHeapTime(URI uri){
+        LinkedList<HeapEntry> removedItems = new LinkedList<>();
+        boolean notFound = true;
+        try{
+            while(notFound) {
+                HeapEntry removedDoc = this.useTimes.remove();
+                if (uri.equals(removedDoc.getURI())){
+                    notFound = false;
+                    removedDoc.setTime(this.table.get(uri).getLastUseTime());
+                    for (HeapEntry item : removedItems){
+                        this.useTimes.insert(item);
+                    }
+                    this.useTimes.insert(removedDoc);
+                }else{
+                    removedItems.add(removedDoc);
+                }
+            }
+        }catch(NoSuchElementException e){
+            for (HeapEntry item : removedItems){
+                this.useTimes.insert(item);
+            }
         }
     }
     private void deleteFromStore(Document doc) {
@@ -421,9 +434,9 @@ public class DocumentStoreImpl implements DocumentStore {
         if ((this.maxBytes != 0 && doc.getDocumentTxt() == null && doc.getDocumentBinaryData().length >= this.maxBytes) || (this.maxBytes != 0 && doc.getDocumentTxt() != null && doc.getDocumentTxt().getBytes().length >= maxBytes)){
             throw new IllegalArgumentException("Document exceeds max bytes");
         }
+        this.table.put(doc.getKey(), doc);
         this.useTimes.insert(new HeapEntry(doc.getKey(), doc.getLastUseTime()));
         this.updateDocsNanoTime(Arrays.asList(doc));
-        this.table.put(doc.getKey(), doc);
         Set<String> words = doc.getWords();
         for (String word : words) {
             docsText.put(word, doc.getKey());
@@ -437,7 +450,11 @@ public class DocumentStoreImpl implements DocumentStore {
     }
     private void maintainMemory(){
         while ((maxDocs != 0 && this.docCount > maxDocs) || (this.maxBytes != 0 && this.bytesCount > maxBytes)){
-            deleteDocumentsTotally(this.get(this.useTimes.peek().getURI()));
+            try {
+                this.table.moveToDisk(this.useTimes.remove().getURI());
+            }catch (IOException e){
+                throw new RuntimeException("Failed to move to disk");
+            }
         }
     }
     private void deleteFromHeap(Document doc){
@@ -490,6 +507,9 @@ public class DocumentStoreImpl implements DocumentStore {
         public URI getURI() {
             return uri;
         }
+        public void setTime(long time){
+            this.time = time;
+        }
         public int compareTo(HeapEntry entry) {
             long otherDocTime = entry.getTime();
             if (this.time < otherDocTime){
@@ -498,6 +518,18 @@ public class DocumentStoreImpl implements DocumentStore {
                 return 0;
             }
             return 1;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (!(obj instanceof HeapEntry)){
+                return false;
+            }
+            HeapEntry entry = (HeapEntry) obj;
+            if ((entry.getURI() == this.getURI()) && (entry.getTime() == this.getTime())){
+                return true;
+            }
+            return false;
         }
     }
 }

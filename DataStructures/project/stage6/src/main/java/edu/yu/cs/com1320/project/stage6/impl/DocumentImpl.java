@@ -14,13 +14,14 @@ public class DocumentImpl implements Document{
     URI uri;
     long lastUseTime;
     public DocumentImpl(URI uri, String text, Map<String, Integer> wordCountMap){
-        if(uri == null || uri.toString().isBlank()|| txt == null || txt.isBlank()){
+        if(uri == null || uri.toString().isBlank()|| text == null || text.isBlank()){
             throw new IllegalArgumentException("DocumentImpl constructor 1");
         }
         this.metaDataTable = new HashMap<>();
         this.wordCountTable = new HashMap<>();
         this.txt = text;
         this.uri = uri;
+        this.setLastUseTime(System.nanoTime());
         if (wordCountMap == null) {
             String[] words = txt.split(" ");
             for (int i = 0; i < words.length; i++) {
@@ -40,6 +41,7 @@ public class DocumentImpl implements Document{
         this.uri = uri;
         this.txt = null;
         this.wordCountTable = new HashMap<>();
+        this.setLastUseTime(System.nanoTime());
     }
     /**
      * @param key   key of document metadata to store a value for
