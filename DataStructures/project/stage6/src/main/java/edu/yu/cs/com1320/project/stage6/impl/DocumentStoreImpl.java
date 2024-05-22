@@ -32,7 +32,10 @@ public class DocumentStoreImpl implements DocumentStore {
     }
     public DocumentStoreImpl(File dir) {
         this();
-        this.table.setPersistenceManager(new DocumentPersistenceManager(dir));
+        if (dir != null) {
+            dir.mkdirs();
+            this.table.setPersistenceManager(new DocumentPersistenceManager(dir));
+        }
     }
     /**
      * set the given key-value metadata pair for the document at the given uri

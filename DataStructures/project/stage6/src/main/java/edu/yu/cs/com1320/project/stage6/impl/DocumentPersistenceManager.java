@@ -5,6 +5,7 @@ import edu.yu.cs.com1320.project.stage6.Document;
 import edu.yu.cs.com1320.project.stage6.PersistenceManager;
 import javax.xml.bind.DatatypeConverter;
 import java.io.*;
+import java.lang.reflect.Type;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -18,29 +19,8 @@ public class DocumentPersistenceManager implements PersistenceManager <URI, Docu
     }
 
     public void serialize(URI uri, Document doc) throws IOException{
-        JsonSerializer<Document> serializer = (src, typeOfSrc, context) -> {
-            JsonObject jsonDoc = new JsonObject();
-            jsonDoc.addProperty("URI", src.getKey().toString());
-            JsonObject jsonMap = new JsonObject();
-            for (Map.Entry<String, String> entry : src.getMetadata().entrySet()) {
-                jsonMap.addProperty(entry.getKey(), entry.getValue());
-            }
-            jsonDoc.add("MetaData", jsonMap);
-            if(src.getDocumentTxt() != null){
-                jsonDoc.addProperty("Text", src.getDocumentTxt());
-                JsonObject jsonMap2 = new JsonObject();
-                for (Map.Entry<String, Integer> entry : src.getWordMap().entrySet()) {
-                    jsonMap2.addProperty(entry.getKey(), entry.getValue());
-                }
-                jsonDoc.add("wordCount", jsonMap2);
-            }else{
-                String base64Encoded = DatatypeConverter.printBase64Binary(src.getDocumentBinaryData());
-                jsonDoc.addProperty("ByteArray", base64Encoded);
-            }
-            return jsonDoc;
-        };
         GsonBuilder gsonBuilder = new GsonBuilder();
-        gsonBuilder.registerTypeAdapter(DocumentImpl.class, serializer);
+        gsonBuilder.registerTypeAdapter(DocumentImpl.class, new DocumentSerializer());
         Gson gson = gsonBuilder.setPrettyPrinting().create();
         String customJSON = gson.toJson(doc);
         String path = dir.getPath() + File.separator + uri.toString().substring(7).replace("/", File.separator) + ".json";
@@ -80,20 +60,16 @@ public class DocumentPersistenceManager implements PersistenceManager <URI, Docu
             for (Map.Entry<String, JsonElement> entry : metadataJson.entrySet()) {
                 doc.setMetadataValue(entry.getKey(), entry.getValue().getAsString());
             }
-            return doc;
-        };
+            return doc;};
         String jsonPath = dir.getPath() + File.separator + uri.toString().substring(7).replace("/", File.separator) + ".json";
         BufferedReader reader = new BufferedReader(new FileReader(jsonPath));
         String json = "";
         String line;
         while ((line = reader.readLine()) != null){
-            json += line + "\n";
-        }
+            json += line + "\n";}
         reader.close();
         Gson gson = new GsonBuilder().registerTypeAdapter(DocumentImpl.class, deserializer).create();
-        Document document = gson.fromJson(json, DocumentImpl.class);
-        return document;
-    }
+        return gson.fromJson(json, DocumentImpl.class);}
     /**
      * delete the file stored on disk that corresponds to the given key
      * @param uri
@@ -117,6 +93,30 @@ public class DocumentPersistenceManager implements PersistenceManager <URI, Docu
             return deleted;
         } catch (Exception e) {
             throw new IOException("Failed to delete from disk");
+        }
+    }
+    public class DocumentSerializer implements JsonSerializer<Document> {
+        @Override
+        public JsonElement serialize(Document src, Type typeOfSrc, JsonSerializationContext context) {
+            JsonObject jsonDoc = new JsonObject();
+            jsonDoc.addProperty("URI", src.getKey().toString());
+            JsonObject jsonMap = new JsonObject();
+            for (Map.Entry<String, String> entry : src.getMetadata().entrySet()) {
+                jsonMap.addProperty(entry.getKey(), entry.getValue());
+            }
+            jsonDoc.add("MetaData", jsonMap);
+            if (src.getDocumentTxt() != null) {
+                jsonDoc.addProperty("Text", src.getDocumentTxt());
+                JsonObject jsonMap2 = new JsonObject();
+                for (Map.Entry<String, Integer> entry : src.getWordMap().entrySet()) {
+                    jsonMap2.addProperty(entry.getKey(), entry.getValue());
+                }
+                jsonDoc.add("wordCount", jsonMap2);
+            } else {
+                String base64Encoded = DatatypeConverter.printBase64Binary(src.getDocumentBinaryData());
+                jsonDoc.addProperty("ByteArray", base64Encoded);
+            }
+            return jsonDoc;
         }
     }
 }

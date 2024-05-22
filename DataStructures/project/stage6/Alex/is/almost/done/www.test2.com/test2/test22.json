@@ -1,0 +1,13 @@
+{
+  "URI": "http://www.test2.com/test2/test22",
+  "MetaData": {},
+  "Text": "This is the text of doc2",
+  "wordCount": {
+    "the": 1,
+    "doc2": 1,
+    "of": 1,
+    "This": 1,
+    "is": 1,
+    "text": 1
+  }
+}
