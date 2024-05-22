@@ -84,13 +84,13 @@ public class DocumentPersistenceManager implements PersistenceManager <URI, Docu
         };
         String jsonPath = dir.getPath() + File.separator + uri.getHost() + uri.getRawPath() + ".json";
         BufferedReader reader = new BufferedReader(new FileReader(jsonPath));
-        String json = null;
+        String json = "";
         String line;
         while ((line = reader.readLine()) != null){
-            json += "\n" + line;
+            json += line + "\n";
         }
         Gson gson = new GsonBuilder().registerTypeAdapter(DocumentImpl.class, deserializer).create();
-        Document document = gson.fromJson(json, Document.class);
+        Document document = gson.fromJson(json, DocumentImpl.class);
         return document;
     }
     /**
