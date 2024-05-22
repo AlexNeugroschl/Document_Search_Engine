@@ -118,7 +118,7 @@ public class DocumentStoreImpl implements DocumentStore {
      * @return the given document
      */
     public Document get(URI url) {
-        Document doc = table.get(url);
+        Document doc = this.getFromTree(url);
         if (doc != null) {
             this.updateDocsNanoTime(Arrays.asList(doc));
         }
@@ -452,7 +452,9 @@ public class DocumentStoreImpl implements DocumentStore {
     private void maintainMemory(){
         while ((maxDocs != 0 && this.docCount > maxDocs) || (this.maxBytes != 0 && this.bytesCount > maxBytes)){
             try {
-                this.table.moveToDisk(this.useTimes.remove().getURI());
+                HeapEntry doc = this.useTimes.remove();
+                this.bytesCount -= this.table.get(doc.getURI()).getDocumentTxt() == null ? this.table.get(doc.getURI()).getDocumentBinaryData().length : this.table.get(doc.getURI()).getDocumentTxt().getBytes().length;
+                this.table.moveToDisk(doc.getURI());
                 this.docCount--;
             }catch (IOException e){
                 throw new RuntimeException("Failed to move to disk");

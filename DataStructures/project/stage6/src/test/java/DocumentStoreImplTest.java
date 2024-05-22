@@ -370,7 +370,7 @@ public class DocumentStoreImplTest {
     @Test
     public void deleteTest1()throws URISyntaxException, UnsupportedEncodingException, IOException {
         DocumentStoreImpl store = new DocumentStoreImpl();
-        URI uri = new URI("https://www.geeksforgeeks.org/url-class-java-examples/");
+        URI uri = new URI("http://www.geeksforgeeks.org/urlclassjavaexamples");
         String text = "This is the text of the doc";
         byte[] bytes = text.getBytes();
         ByteArrayInputStream input = new ByteArrayInputStream(bytes);
@@ -391,7 +391,7 @@ public class DocumentStoreImplTest {
     @Test
     public void deleteTest3()throws URISyntaxException, UnsupportedEncodingException, IOException {
         DocumentStoreImpl store = new DocumentStoreImpl();
-        URI uri = new URI("https://www.geeksforgeeks.org/url-class-java-examples/");
+        URI uri = new URI("http://www.geeksforgeeks.org/url-class-java-examples");
         String text = "This is the text of the doc";
         byte[] bytes = text.getBytes();
         ByteArrayInputStream input = new ByteArrayInputStream(bytes);

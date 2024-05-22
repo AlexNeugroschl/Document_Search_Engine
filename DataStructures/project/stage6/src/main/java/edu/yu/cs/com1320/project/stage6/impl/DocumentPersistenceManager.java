@@ -82,7 +82,7 @@ public class DocumentPersistenceManager implements PersistenceManager <URI, Docu
             }
             return doc;
         };
-        String jsonPath = dir.getPath() + File.separator + uri.getHost() + uri.getRawPath() + ".json";
+        String jsonPath = dir.getPath() + File.separator + uri.toString().substring(7).replace("/", File.separator) + ".json";
         BufferedReader reader = new BufferedReader(new FileReader(jsonPath));
         String json = "";
         String line;
