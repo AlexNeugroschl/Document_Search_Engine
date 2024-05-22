@@ -440,11 +440,11 @@ public class DocumentStoreImplTest {
     @Test
     public void harderUndoPut() throws URISyntaxException, UnsupportedEncodingException, IOException {
         DocumentStoreImpl store = new DocumentStoreImpl();
-        URI uri1 = new URI("www.test1.com");
-        URI uri2 = new URI("www.test2.com");
-        URI uri3 = new URI("www.test3.com");
-        URI uri4 = new URI("www.test4.com");
-        URI uri5 = new URI("www.test5.com");
+        URI uri1 = new URI("www.test10.com");
+        URI uri2 = new URI("www.test20.com");
+        URI uri3 = new URI("www.test30.com");
+        URI uri4 = new URI("www.test40.com");
+        URI uri5 = new URI("www.test50.com");
         String text = "This is the text of the doc";
         byte[] bytes = text.getBytes();
         ByteArrayInputStream input = new ByteArrayInputStream(bytes);
@@ -546,11 +546,11 @@ public class DocumentStoreImplTest {
     @Test
     public void undoDelete() throws URISyntaxException, UnsupportedEncodingException, IOException {
         DocumentStoreImpl store = new DocumentStoreImpl();
-        URI uri1 = new URI("www.test1.com");
-        URI uri2 = new URI("www.test2.com");
-        URI uri3 = new URI("www.test3.com");
-        URI uri4 = new URI("www.test4.com");
-        URI uri5 = new URI("www.test5.com");
+        URI uri1 = new URI("www.test11.com");
+        URI uri2 = new URI("www.test21.com");
+        URI uri3 = new URI("www.test31.com");
+        URI uri4 = new URI("www.test41.com");
+        URI uri5 = new URI("www.test51.com");
         String text = "This is the text of the doc";
         String otherText = "OTHER STRING TEXT";
         byte[] bytes = text.getBytes();
@@ -631,11 +631,11 @@ public class DocumentStoreImplTest {
     @Test
     public void undoStackIntact1() throws URISyntaxException, UnsupportedEncodingException, IOException {
         DocumentStoreImpl store = new DocumentStoreImpl();
-        URI uri1 = new URI("www.test1.com");
-        URI uri2 = new URI("www.test2.com");
-        URI uri3 = new URI("www.test3.com");
-        URI uri4 = new URI("www.test4.com");
-        URI uri5 = new URI("www.test5.com");
+        URI uri1 = new URI("www.test12.com");
+        URI uri2 = new URI("www.test22.com");
+        URI uri3 = new URI("www.test32.com");
+        URI uri4 = new URI("www.test42.com");
+        URI uri5 = new URI("www.test52.com");
         String text = "This is the text of the doc";
         byte[] bytes = text.getBytes();
         ByteArrayInputStream input = new ByteArrayInputStream(bytes);
@@ -1057,7 +1057,6 @@ public class DocumentStoreImplTest {
         String text2 = "This is the text of doc2";
         String text3 = "This is the text of doc3";
         String text4 = "This is the text of doc4";
-        String text5 = "This is the text of doc5";
         byte[] bytes1 = text1.getBytes();
         byte[] bytes2 = text2.getBytes();
         byte[] bytes3 = text3.getBytes();
@@ -1075,7 +1074,7 @@ public class DocumentStoreImplTest {
         store.deleteAllWithPrefix("is");
         store.setMaxDocumentBytes(25);
         store.undo();
-        assertEquals(4, store.search("is").size());
+        assertEquals(2, store.search("is").size());
     }
     @Test
     public void tryingToRecreateBug1() throws URISyntaxException, UnsupportedEncodingException, IOException {

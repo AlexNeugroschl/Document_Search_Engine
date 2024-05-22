@@ -412,10 +412,12 @@ public class DocumentStoreImpl implements DocumentStore {
         }
     }
     private void deleteFromStore(Document doc) {
-        if (this.getFromTree(doc.getKey()) != null){
+        if (this.heapContains(doc.getKey())){
             this.bytesCount -= doc.getDocumentTxt() == null ? doc.getDocumentBinaryData().length : doc.getDocumentTxt().getBytes().length;
             this.docCount--;
         }
+        this.table.get(doc.getKey());
+        this.deleteFromHeap(doc);
         this.table.put(doc.getKey(), null);
         Set<String> words = doc.getWords();
         for (String word : words) {
@@ -425,10 +427,12 @@ public class DocumentStoreImpl implements DocumentStore {
         for (String dataPoint : metaDataKeys) {
             this.metaData.delete(dataPoint, doc.getKey());
         }
-        this.deleteFromHeap(doc);
     }
     private void addToStore(Document doc){
         if (doc == null){
+            return;
+        }
+        if (this.get(doc.getKey()) != null){
             return;
         }
         if ((this.maxBytes != 0 && doc.getDocumentTxt() == null && doc.getDocumentBinaryData().length >= this.maxBytes) || (this.maxBytes != 0 && doc.getDocumentTxt() != null && doc.getDocumentTxt().getBytes().length >= maxBytes)){
@@ -436,7 +440,6 @@ public class DocumentStoreImpl implements DocumentStore {
         }
         this.table.put(doc.getKey(), doc);
         this.useTimes.insert(new HeapEntry(doc.getKey(), doc.getLastUseTime()));
-        //this.updateDocsNanoTime(Arrays.asList(doc));
         Set<String> words = doc.getWords();
         for (String word : words) {
             docsText.put(word, doc.getKey());
@@ -467,7 +470,7 @@ public class DocumentStoreImpl implements DocumentStore {
         try{
             while(notFound) {
                 HeapEntry removedDoc = this.useTimes.remove();
-                if (doc.equals(removedDoc)){
+                if (doc.getKey().equals(removedDoc.getURI())){
                     notFound = false;
                     for (HeapEntry item : removedItems){
                         this.useTimes.insert(item);
