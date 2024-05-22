@@ -1047,10 +1047,10 @@ public class DocumentStoreImplTest {
         DocumentStoreImpl store = new DocumentStoreImpl();
         DocumentStore.DocumentFormat format1 = DocumentStore.DocumentFormat.TXT;
         DocumentStore.DocumentFormat format2 = DocumentStore.DocumentFormat.BINARY;
-        URI uri1 = new URI("www.test1.com");
-        URI uri2 = new URI("www.test2.com");
-        URI uri3 = new URI("www.test3.com");
-        URI uri4 = new URI("www.test4.com");
+        URI uri1 = new URI("www.test1121.com/doc");
+        URI uri2 = new URI("www.test2121.com/doc");
+        URI uri3 = new URI("www.test3121.com/doc");
+        URI uri4 = new URI("www.test4121.com/doc");
         String text1 = "This is the text of doc1";
         String text2 = "This is the text of doc2";
         String text3 = "This is the text of doc3";

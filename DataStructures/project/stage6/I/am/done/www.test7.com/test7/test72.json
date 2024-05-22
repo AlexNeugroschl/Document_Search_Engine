@@ -1,0 +1,13 @@
+{
+  "URI": "http://www.test7.com/test7/test72",
+  "MetaData": {},
+  "Text": "This is the text of doc7",
+  "wordCount": {
+    "the": 1,
+    "doc7": 1,
+    "of": 1,
+    "This": 1,
+    "is": 1,
+    "text": 1
+  }
+}

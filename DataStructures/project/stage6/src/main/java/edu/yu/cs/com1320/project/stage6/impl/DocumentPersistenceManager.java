@@ -36,23 +36,22 @@ public class DocumentPersistenceManager implements PersistenceManager <URI, Docu
             writer.write(customJSON);
             writer.close();
         } catch (Exception e){
-            throw e;
+            throw new IOException("Failed to write to disk");
         }
 
     }
-    public Document deserialize(URI uri) throws IOException{
+    public Document deserialize(URI uri) throws IOException {
         JsonDeserializer<Document> deserializer = (json, typeOfT, context) -> {
             Document doc = null;
             JsonObject jsonDoc = json.getAsJsonObject();
-            try{
-                String text = jsonDoc.get("Text").getAsString();
+            try {String text = jsonDoc.get("Text").getAsString();
                 JsonObject wordJson = jsonDoc.get("wordCount").getAsJsonObject();
                 Map<String, Integer> words = new HashMap<>();
                 for (Map.Entry<String, JsonElement> entry : wordJson.entrySet()) {
                     words.put(entry.getKey(), entry.getValue().getAsInt());
                 }
                 doc = new DocumentImpl(uri, text, words);
-            } catch (NullPointerException e){
+            } catch (NullPointerException e) {
                 byte[] base64Decoded = DatatypeConverter.parseBase64Binary(jsonDoc.get("ByteArray").getAsString());
                 doc = new DocumentImpl(uri, base64Decoded);
             }
@@ -61,15 +60,16 @@ public class DocumentPersistenceManager implements PersistenceManager <URI, Docu
                 doc.setMetadataValue(entry.getKey(), entry.getValue().getAsString());
             }
             return doc;};
-        String jsonPath = dir.getPath() + File.separator + uri.toString().substring(7).replace("/", File.separator) + ".json";
-        BufferedReader reader = new BufferedReader(new FileReader(jsonPath));
-        String json = "";
-        String line;
-        while ((line = reader.readLine()) != null){
-            json += line + "\n";}
-        reader.close();
-        Gson gson = new GsonBuilder().registerTypeAdapter(DocumentImpl.class, deserializer).create();
-        return gson.fromJson(json, DocumentImpl.class);}
+        try {String jsonPath = dir.getPath() + File.separator + uri.toString().substring(7).replace("/", File.separator) + ".json";
+            BufferedReader reader = new BufferedReader(new FileReader(jsonPath));
+            String json = "";
+            String line;
+            while ((line = reader.readLine()) != null) {
+                json += line + "\n";}
+            reader.close();
+            Gson gson = new GsonBuilder().registerTypeAdapter(DocumentImpl.class, deserializer).create();
+            return gson.fromJson(json, DocumentImpl.class);
+        } catch (Exception e){throw new IOException("Failed to Read from disk");}}
     /**
      * delete the file stored on disk that corresponds to the given key
      * @param uri
@@ -79,7 +79,6 @@ public class DocumentPersistenceManager implements PersistenceManager <URI, Docu
     public boolean delete(URI uri) throws IOException{
         try {
             boolean deleted = Files.deleteIfExists(Paths.get(dir.getPath() + File.separator + uri.toString().substring(7).replace("/", File.separator) + ".json"));
-
             try{
                 String directory = dir.getPath() + File.separator + uri.toString().substring(7).replace("/", File.separator);
                 while(directory.indexOf(File.separator) > 0){
@@ -87,7 +86,6 @@ public class DocumentPersistenceManager implements PersistenceManager <URI, Docu
                     Files.deleteIfExists(Paths.get(directory));
                 }
             } catch (Exception e){
-
             }
 
             return deleted;
