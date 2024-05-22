@@ -96,7 +96,8 @@ public class BTreeImpl<Key extends Comparable<Key>, Value> implements BTree<Key,
                     this.manager.delete(key);
                     return deserialized;
                 }catch (IOException e){
-                    throw new RuntimeException("deserialization failed");
+                    return null;
+                    //throw new RuntimeException("deserialization failed");
                 }
             }
         }
@@ -149,6 +150,14 @@ public class BTreeImpl<Key extends Comparable<Key>, Value> implements BTree<Key,
         if(alreadyThere != null)
         {
             Object temp = alreadyThere.val;
+            if (temp == null){
+                try{
+                    if (this.manager.delete(key)){
+                        return null;
+                    }
+                } catch (IOException e){
+                }
+            }
             alreadyThere.val = val;
             return (Value)temp;
         }

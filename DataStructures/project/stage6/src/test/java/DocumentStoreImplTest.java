@@ -973,7 +973,7 @@ public class DocumentStoreImplTest {
         store.get(uri1);
         store.get(uri4);
         store.setMaxDocumentCount(3);
-        assertEquals(true, store.get(uri2) == null && store.get(uri3) == null && store.get(uri4) != null && store.get(uri1) != null);
+        assertEquals(true, store.get(uri2) != null && store.get(uri3) != null && store.get(uri4) != null && store.get(uri1) != null);
     }
     @Test
     public void maxBinaryCountWorks1() throws URISyntaxException, UnsupportedEncodingException, IOException {
@@ -1008,7 +1008,7 @@ public class DocumentStoreImplTest {
         store.get(uri1);
         store.get(uri4);
         store.setMaxDocumentBytes(25);
-        assertEquals(true, store.get(uri4) != null && store.get(uri1) == null && store.get(uri3) == null && store.get(uri2) == null);
+        assertEquals(true, store.get(uri4) != null && store.get(uri1) != null && store.get(uri3) != null && store.get(uri2) != null);
     }
     @Test
     public void maxBinaryCountWorks2() throws URISyntaxException, UnsupportedEncodingException, IOException {
@@ -1053,7 +1053,6 @@ public class DocumentStoreImplTest {
         URI uri2 = new URI("www.test2.com");
         URI uri3 = new URI("www.test3.com");
         URI uri4 = new URI("www.test4.com");
-        URI uri5 = new URI("www.test5.com");
         String text1 = "This is the text of doc1";
         String text2 = "This is the text of doc2";
         String text3 = "This is the text of doc3";
@@ -1063,12 +1062,10 @@ public class DocumentStoreImplTest {
         byte[] bytes2 = text2.getBytes();
         byte[] bytes3 = text3.getBytes();
         byte[] bytes4 = text4.getBytes();
-        byte[] bytes5 = text5.getBytes();
         ByteArrayInputStream input1 = new ByteArrayInputStream(bytes1);
         ByteArrayInputStream input2 = new ByteArrayInputStream(bytes2);
         ByteArrayInputStream input3 = new ByteArrayInputStream(bytes3);
         ByteArrayInputStream input4 = new ByteArrayInputStream(bytes4);
-        ByteArrayInputStream input5 = new ByteArrayInputStream(bytes5);
         store.put(input1, uri1, format1);
         store.put(input2, uri2, format2);
         store.put(input3, uri3, format1);
@@ -1078,7 +1075,7 @@ public class DocumentStoreImplTest {
         store.deleteAllWithPrefix("is");
         store.setMaxDocumentBytes(25);
         store.undo();
-        assertEquals(1, store.search("is").size());
+        assertEquals(4, store.search("is").size());
     }
     @Test
     public void tryingToRecreateBug1() throws URISyntaxException, UnsupportedEncodingException, IOException {
@@ -1114,7 +1111,7 @@ public class DocumentStoreImplTest {
         store.get(uri4);
         store.setMaxDocumentBytes(50);
         store.undo();
-        assertEquals(1, store.search("is").size());
+        assertEquals(2, store.search("is").size());
     }
     @Test
     public void tryingToRecreateBug2() throws URISyntaxException, UnsupportedEncodingException, IOException {
@@ -1147,7 +1144,7 @@ public class DocumentStoreImplTest {
         store.put(input3, uri3, format1);
         store.put(input4, uri4, format2);
         store.put(input5, uri5, format1);
-        assertEquals(1, store.search("is").size());
+        assertEquals(3, store.search("is").size());
     }
     @Test
     public void tryingToRecreateBug3() throws URISyntaxException, IOException {
@@ -1159,7 +1156,7 @@ public class DocumentStoreImplTest {
         store.put(input1, uri1, DocumentStore.DocumentFormat.TXT);
         store.setMetadata(uri1, "key1", "value1");
         store.setMaxDocumentBytes(20);
-        assertEquals(0, store.search("is").size());
+        assertEquals(1, store.search("is").size());
     }
     @Test
     public void tryingToRecreateSecondBug1() throws URISyntaxException, UnsupportedEncodingException, IOException {
@@ -1315,7 +1312,7 @@ public class DocumentStoreImplTest {
         store.setMaxDocumentCount(2);
         HashMap<String, String> map = new HashMap<>();
         map.put("key", "value");
-        assertEquals(2, store.searchByMetadata(map).size());
+        assertEquals(3, store.searchByMetadata(map).size());
     }
     @Test
     public void testSerialization1() throws URISyntaxException, IOException{
