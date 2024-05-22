@@ -454,6 +454,8 @@ public class DocumentStoreImpl implements DocumentStore {
         this.bytesCount += doc.getDocumentTxt() == null ? doc.getDocumentBinaryData().length : doc.getDocumentTxt().getBytes().length;
         this.docCount++;
         this.maintainMemory();
+        this.getFromTree(doc.getKey());
+        this.updateDocsNanoTime(Arrays.asList(doc));
     }
     private void maintainMemory(){
         while ((maxDocs != 0 && this.docCount > maxDocs) || (this.maxBytes != 0 && this.bytesCount > maxBytes)){
