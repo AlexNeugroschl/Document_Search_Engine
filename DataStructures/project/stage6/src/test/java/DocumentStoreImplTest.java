@@ -637,11 +637,8 @@ public class DocumentStoreImplTest {
         URI uri4 = new URI("www.test4.com");
         URI uri5 = new URI("www.test5.com");
         String text = "This is the text of the doc";
-        String otherText = "OTHER STRING TEXT";
         byte[] bytes = text.getBytes();
-        byte[] otherBytes = otherText.getBytes();
         ByteArrayInputStream input = new ByteArrayInputStream(bytes);
-        ByteArrayInputStream otherInput = new ByteArrayInputStream(otherBytes);
         DocumentStore.DocumentFormat format = DocumentStore.DocumentFormat.TXT;
         store.put(input, uri1, format);
         input.reset();
@@ -1325,8 +1322,8 @@ public class DocumentStoreImplTest {
         DocumentStoreImpl store = new DocumentStoreImpl();
         store.setMaxDocumentCount(1);
         DocumentStore.DocumentFormat format1 = DocumentStore.DocumentFormat.TXT;
-        URI uri1 = new URI("http://www.test1.com/test1");
-        URI uri2 = new URI("http://www.test2.com/test2");
+        URI uri1 = new URI("http://www.test1.com/test1/test12");
+        URI uri2 = new URI("http://www.test2.com/test2/test22");
         String text1 = "This is the text of doc1";
         String text2 = "This is the text of doc2";
         byte[] bytes1 = text1.getBytes();

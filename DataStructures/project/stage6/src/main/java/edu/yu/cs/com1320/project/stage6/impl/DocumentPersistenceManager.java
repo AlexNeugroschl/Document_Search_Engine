@@ -13,40 +13,46 @@ import java.util.Map;
 
 public class DocumentPersistenceManager implements PersistenceManager <URI, Document>{
     File dir;
-    String basePath;
     public DocumentPersistenceManager(File dir){
         this.dir = dir;
-        this.basePath = dir == null ? "" : dir.getPath() + "/";
     }
 
     public void serialize(URI uri, Document doc) throws IOException{
         JsonSerializer<Document> serializer = (src, typeOfSrc, context) -> {
             JsonObject jsonDoc = new JsonObject();
-            jsonDoc.addProperty("URI", doc.getKey().toString());
+            jsonDoc.addProperty("URI", src.getKey().toString());
             JsonObject jsonMap = new JsonObject();
-            for (Map.Entry<String, String> entry : doc.getMetadata().entrySet()) {
+            for (Map.Entry<String, String> entry : src.getMetadata().entrySet()) {
                 jsonMap.addProperty(entry.getKey(), entry.getValue());
             }
             jsonDoc.add("MetaData", jsonMap);
-            if(doc.getDocumentTxt() != null){
-                jsonDoc.addProperty("Text", doc.getDocumentTxt());
+            if(src.getDocumentTxt() != null){
+                jsonDoc.addProperty("Text", src.getDocumentTxt());
                 JsonObject jsonMap2 = new JsonObject();
-                for (Map.Entry<String, Integer> entry : doc.getWordMap().entrySet()) {
+                for (Map.Entry<String, Integer> entry : src.getWordMap().entrySet()) {
                     jsonMap2.addProperty(entry.getKey(), entry.getValue());
                 }
                 jsonDoc.add("wordCount", jsonMap2);
             }else{
-                String base64Encoded = DatatypeConverter.printBase64Binary(doc.getDocumentBinaryData());
+                String base64Encoded = DatatypeConverter.printBase64Binary(src.getDocumentBinaryData());
                 jsonDoc.addProperty("ByteArray", base64Encoded);
             }
             return jsonDoc;
         };
-        Gson gson = new GsonBuilder().registerTypeAdapter(Document.class, serializer).create();
+        GsonBuilder gsonBuilder = new GsonBuilder();
+        gsonBuilder.registerTypeAdapter(DocumentImpl.class, serializer);
+        Gson gson = gsonBuilder.setPrettyPrinting().create();
         String customJSON = gson.toJson(doc);
-        String path = this.dir.getPath() + uri.getHost() + uri.getRawPath() + ".json";
+        String path = dir.getPath() + File.separator + uri.toString().substring(7).replace("/", File.separator) + ".json";
+        File directory = new File(path.substring(0, path.lastIndexOf(File.separator) + 1));
+        directory.mkdirs();
         File file = new File(path);
+        file.createNewFile();
+        file.setWritable(true);
+        file.setReadable(true);
+        file.setExecutable(true);
         try {
-            FileWriter writer = new FileWriter(file);
+            BufferedWriter writer = new BufferedWriter(new FileWriter(file));
             writer.write(customJSON);
             writer.close();
         } catch (Exception e){
@@ -71,20 +77,19 @@ public class DocumentPersistenceManager implements PersistenceManager <URI, Docu
                 doc = new DocumentImpl(uri, base64Decoded);
             }
             JsonObject metadataJson = jsonDoc.get("MetaData").getAsJsonObject();
-            Map<String, String> metadata = new HashMap<>();
             for (Map.Entry<String, JsonElement> entry : metadataJson.entrySet()) {
-                metadata.put(entry.getKey(), entry.getValue().getAsString());
+                doc.setMetadataValue(entry.getKey(), entry.getValue().getAsString());
             }
             return doc;
         };
-        String jsonPath = this.dir.getPath() + uri.getHost() + uri.getRawPath() + ".json";
+        String jsonPath = dir.getPath() + File.separator + uri.getHost() + uri.getRawPath() + ".json";
         BufferedReader reader = new BufferedReader(new FileReader(jsonPath));
         String json = null;
         String line;
         while ((line = reader.readLine()) != null){
             json += "\n" + line;
         }
-        Gson gson = new GsonBuilder().registerTypeAdapter(Document.class, deserializer).create();
+        Gson gson = new GsonBuilder().registerTypeAdapter(DocumentImpl.class, deserializer).create();
         Document document = gson.fromJson(json, Document.class);
         return document;
     }
@@ -96,7 +101,7 @@ public class DocumentPersistenceManager implements PersistenceManager <URI, Docu
      */
     public boolean delete(URI uri) throws IOException{
         try {
-            Files.delete(Paths.get(this.dir.getPath() + uri.getHost() + uri.getRawPath() + ".json"));
+            Files.delete(Paths.get(dir.getPath() + File.separator + uri.getHost() + uri.getRawPath() + ".json"));
             return true;
         } catch (Exception e) {
             return false;

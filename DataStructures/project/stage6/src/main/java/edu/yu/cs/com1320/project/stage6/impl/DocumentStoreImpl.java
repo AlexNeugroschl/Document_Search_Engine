@@ -20,7 +20,7 @@ public class DocumentStoreImpl implements DocumentStore {
     int docCount;
     public DocumentStoreImpl() {
         this.table = new BTreeImpl<>();
-        this.table.setPersistenceManager(new DocumentPersistenceManager(null));
+        this.table.setPersistenceManager(new DocumentPersistenceManager(new File(System.getProperty("user.home"))));
         this.commandStack = new StackImpl<>();
         this.docsText = new TrieImpl<>();
         this.metaData = new TrieImpl<>();
@@ -44,7 +44,7 @@ public class DocumentStoreImpl implements DocumentStore {
      * @throws IllegalArgumentException if the uri is null or blank, if there is no document stored at that uri, or if the key is null or blank
      */
     public String setMetadata(URI uri, String key, String value) {
-        if (uri == null || uri.toString().isBlank() || key == null || key.isBlank() || this.table.get(uri) == null) {
+        if (uri == null || uri.toString().isBlank() || key == null || key.isBlank() || this.getFromTree(uri) == null) {
             throw new IllegalArgumentException("DocumentStore setMetaData error");
         }
         String oldValue = this.getMetadata(uri, key);
@@ -88,7 +88,7 @@ public class DocumentStoreImpl implements DocumentStore {
             throw new IllegalArgumentException("DocumentStore Put error");
         }
         if (input == null) {
-            Document deleted = this.table.get(uri);
+            Document deleted = this.getFromTree(uri);
             return this.delete(uri) ? deleted.hashCode() : 0;
         }
         byte[] bytes;
@@ -98,7 +98,7 @@ public class DocumentStoreImpl implements DocumentStore {
             throw new IOException("DocumentStoreImpl IOE exception");
         }
         DocumentImpl doc = format == DocumentFormat.TXT ? new DocumentImpl(uri, new String(bytes), null) : new DocumentImpl(uri, bytes);
-        Document original = this.table.get(uri);
+        Document original = this.getFromTree(uri);
         if (original != null){
             this.delete(original.getKey());
         }
@@ -129,7 +129,7 @@ public class DocumentStoreImpl implements DocumentStore {
      * @return true if the document is deleted, false if no document exists with that URI
      */
     public boolean delete(URI url) {
-        Document docToDelete = this.table.get(url);
+        Document docToDelete = this.getFromTree(url);
         if (docToDelete == null) {
             return false;
         } else {
@@ -196,7 +196,7 @@ public class DocumentStoreImpl implements DocumentStore {
         List<URI> uris = this.docsText.getSorted(keyword, new DocumentComparator(keyword));
         List<Document> docs = new LinkedList<>();
         for (URI uri : uris){
-            docs.add(this.table.get(uri));
+            docs.add(this.getFromTree(uri));
         }
         this.updateDocsNanoTime(docs);
         return docs;
@@ -213,7 +213,7 @@ public class DocumentStoreImpl implements DocumentStore {
         List<URI> uris = this.docsText.getAllWithPrefixSorted(keywordPrefix, new DocumentComparator(keywordPrefix));
         List<Document> docs = new LinkedList<>();
         for (URI uri : uris){
-            docs.add(this.table.get(uri));
+            docs.add(this.getFromTree(uri));
         }
         this.updateDocsNanoTime(docs);
         return docs;
@@ -229,7 +229,7 @@ public class DocumentStoreImpl implements DocumentStore {
         LinkedList<URI> uris = new LinkedList<>(docsText.get(keyword));
         LinkedList<Document> docs = new LinkedList<>();
         for (URI uri : uris){
-            docs.add(this.table.get(uri));
+            docs.add(this.getFromTree(uri));
         }
         return deleteDocumentsAddingUndo(docs);
     }
@@ -244,7 +244,7 @@ public class DocumentStoreImpl implements DocumentStore {
         List<URI> uris = this.docsText.getAllWithPrefixSorted(keywordPrefix, new DocumentComparator(keywordPrefix));
         LinkedList<Document> docs = new LinkedList<>();
         for (URI uri : uris){
-            docs.add(this.table.get(uri));
+            docs.add(this.getFromTree(uri));
         }
         return deleteDocumentsAddingUndo(docs);
     }
@@ -260,7 +260,7 @@ public class DocumentStoreImpl implements DocumentStore {
                 docs = new HashSet<Document>();
                 Set<URI> uris = this.metaData.get(key);
                 for (URI uri : uris){
-                    docs.add(this.table.get(uri));
+                    docs.add(this.getFromTree(uri));
                 }
             }
             for (Document doc : docs) {
@@ -289,7 +289,7 @@ public class DocumentStoreImpl implements DocumentStore {
         List<URI> matchingText = new LinkedList<>(this.metaData.get(keyword));
         List<Document> textDocs = new LinkedList<>();
         for (URI uri : matchingText){
-            textDocs.add(this.table.get(uri));
+            textDocs.add(this.getFromTree(uri));
         }
         for (Document doc : matchingMetaData) {
             if (!matchingText.contains(doc)) {
@@ -385,10 +385,10 @@ public class DocumentStoreImpl implements DocumentStore {
         long time = System.nanoTime();
         for(Document doc : docs) {
             doc.setLastUseTime(time);
-            this.updateHeapTime(doc.getKey());
+            this.updateHeapTime(doc.getKey(), time);
         }
     }
-    private void updateHeapTime(URI uri){
+    private void updateHeapTime(URI uri, long time){
         LinkedList<HeapEntry> removedItems = new LinkedList<>();
         boolean notFound = true;
         try{
@@ -396,7 +396,7 @@ public class DocumentStoreImpl implements DocumentStore {
                 HeapEntry removedDoc = this.useTimes.remove();
                 if (uri.equals(removedDoc.getURI())){
                     notFound = false;
-                    removedDoc.setTime(this.table.get(uri).getLastUseTime());
+                    removedDoc.setTime(time);
                     for (HeapEntry item : removedItems){
                         this.useTimes.insert(item);
                     }
@@ -412,7 +412,7 @@ public class DocumentStoreImpl implements DocumentStore {
         }
     }
     private void deleteFromStore(Document doc) {
-        if (this.table.get(doc.getKey()) != null){
+        if (this.getFromTree(doc.getKey()) != null){
             this.bytesCount -= doc.getDocumentTxt() == null ? doc.getDocumentBinaryData().length : doc.getDocumentTxt().getBytes().length;
             this.docCount--;
         }
@@ -436,7 +436,7 @@ public class DocumentStoreImpl implements DocumentStore {
         }
         this.table.put(doc.getKey(), doc);
         this.useTimes.insert(new HeapEntry(doc.getKey(), doc.getLastUseTime()));
-        this.updateDocsNanoTime(Arrays.asList(doc));
+        //this.updateDocsNanoTime(Arrays.asList(doc));
         Set<String> words = doc.getWords();
         for (String word : words) {
             docsText.put(word, doc.getKey());
@@ -446,12 +446,14 @@ public class DocumentStoreImpl implements DocumentStore {
             metaData.put(dataPoint, doc.getKey());
         }
         this.bytesCount += doc.getDocumentTxt() == null ? doc.getDocumentBinaryData().length : doc.getDocumentTxt().getBytes().length;
+        this.docCount++;
         this.maintainMemory();
     }
     private void maintainMemory(){
         while ((maxDocs != 0 && this.docCount > maxDocs) || (this.maxBytes != 0 && this.bytesCount > maxBytes)){
             try {
                 this.table.moveToDisk(this.useTimes.remove().getURI());
+                this.docCount--;
             }catch (IOException e){
                 throw new RuntimeException("Failed to move to disk");
             }
@@ -478,6 +480,40 @@ public class DocumentStoreImpl implements DocumentStore {
             }
         }
     }
+    private Document getFromTree(URI uri){
+        Document doc = this.table.get(uri);
+        if ((!this.heapContains(uri)) && doc != null){
+            this.useTimes.insert(new HeapEntry(uri, doc.getLastUseTime()));
+            this.docCount++;
+            this.bytesCount += doc.getDocumentTxt() == null ? doc.getDocumentBinaryData().length : doc.getDocumentTxt().getBytes().length;
+            this.maintainMemory();
+        }
+        return doc;
+    }
+    private boolean heapContains(URI uri){
+        LinkedList<HeapEntry> removedItems = new LinkedList<>();
+        boolean notFound = true;
+        try{
+            while(notFound) {
+                HeapEntry removedDoc = this.useTimes.remove();
+                if (uri.equals(removedDoc.getURI())){
+                    notFound = false;
+                    for (HeapEntry item : removedItems){
+                        this.useTimes.insert(item);
+                    }
+                    this.useTimes.insert(removedDoc);
+                    return true;
+                }else{
+                    removedItems.add(removedDoc);
+                }
+            }
+        }catch(NoSuchElementException e){
+            for (HeapEntry item : removedItems){
+                this.useTimes.insert(item);
+            }
+        }
+        return false;
+    }
     private class DocumentComparator implements Comparator<URI> {
         private String keyword;
         public DocumentComparator(String keyword) {
@@ -485,8 +521,8 @@ public class DocumentStoreImpl implements DocumentStore {
         }
         @Override
         public int compare(URI doc1, URI doc2) {
-            int doc1Count = DocumentStoreImpl.this.table.get(doc1).wordCount(this.keyword);
-            int doc2Count = DocumentStoreImpl.this.table.get(doc1).wordCount(this.keyword);
+            int doc1Count = DocumentStoreImpl.this.getFromTree(doc1).wordCount(this.keyword);
+            int doc2Count = DocumentStoreImpl.this.getFromTree(doc2).wordCount(this.keyword);
             if (doc1Count > doc2Count) {
                 return -1;
             }
