@@ -102,8 +102,18 @@ public class DocumentPersistenceManager implements PersistenceManager <URI, Docu
      */
     public boolean delete(URI uri) throws IOException{
         try {
-            //Files.delete(Paths.get(dir.getPath() + File.separator + uri.toString().substring(7).replace("/", File.separator) + ".json"));
             boolean deleted = Files.deleteIfExists(Paths.get(dir.getPath() + File.separator + uri.toString().substring(7).replace("/", File.separator) + ".json"));
+
+            try{
+                String directory = dir.getPath() + File.separator + uri.toString().substring(7).replace("/", File.separator);
+                while(directory.indexOf(File.separator) > 0){
+                    directory = directory.substring(0, directory.lastIndexOf(File.separator));
+                    Files.deleteIfExists(Paths.get(directory));
+                }
+            } catch (Exception e){
+
+            }
+
             return deleted;
         } catch (Exception e) {
             throw new IOException("Failed to delete from disk");

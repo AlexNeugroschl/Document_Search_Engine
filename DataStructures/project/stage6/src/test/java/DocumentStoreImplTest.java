@@ -1331,4 +1331,21 @@ public class DocumentStoreImplTest {
         store.put(input2, uri2, format1);
         assertEquals(2, store.search("is").size());
     }
+    @Test
+    public void testSerialization2() throws URISyntaxException, IOException{
+        DocumentStoreImpl store = new DocumentStoreImpl();
+        store.setMaxDocumentCount(1);
+        DocumentStore.DocumentFormat format1 = DocumentStore.DocumentFormat.TXT;
+        URI uri1 = new URI("http://www.test1.com/test1/test12");
+        URI uri2 = new URI("http://www.test2.com/test2/test22");
+        String text1 = "This is the text of doc1";
+        String text2 = "This is the text of doc2";
+        byte[] bytes1 = text1.getBytes();
+        byte[] bytes2 = text2.getBytes();
+        ByteArrayInputStream input1 = new ByteArrayInputStream(bytes1);
+        ByteArrayInputStream input2 = new ByteArrayInputStream(bytes2);
+        store.put(input1, uri1, format1);
+        store.put(input2, uri2, format1);
+        assertEquals(1, store.search("doc1").size());
+    }
 }
