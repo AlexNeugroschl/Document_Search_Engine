@@ -351,9 +351,9 @@ public class DocumentStoreImpl implements DocumentStore {
         for (Document doc : toDelete) {
             deletedURIs.add(doc.getKey());
             undelete.addCommand(new GenericCommand<>(doc.getKey(), uri -> this.addToStore(doc)));
-            commandStack.push(undelete); //NEEDS TO BE OUTSIDE THE LOOP, AFTER IT *************************************
             this.deleteFromStore(doc);
         }
+        commandStack.push(undelete);
         return deletedURIs;
     }
     /**

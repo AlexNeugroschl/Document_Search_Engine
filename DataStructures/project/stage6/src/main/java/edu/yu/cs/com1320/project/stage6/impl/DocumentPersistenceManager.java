@@ -89,6 +89,7 @@ public class DocumentPersistenceManager implements PersistenceManager <URI, Docu
         while ((line = reader.readLine()) != null){
             json += line + "\n";
         }
+        reader.close();
         Gson gson = new GsonBuilder().registerTypeAdapter(DocumentImpl.class, deserializer).create();
         Document document = gson.fromJson(json, DocumentImpl.class);
         return document;
@@ -101,10 +102,11 @@ public class DocumentPersistenceManager implements PersistenceManager <URI, Docu
      */
     public boolean delete(URI uri) throws IOException{
         try {
-            Files.delete(Paths.get(dir.getPath() + File.separator + uri.toString().substring(7).replace("/", File.separator) + ".json"));
-            return true;
+            //Files.delete(Paths.get(dir.getPath() + File.separator + uri.toString().substring(7).replace("/", File.separator) + ".json"));
+            boolean deleted = Files.deleteIfExists(Paths.get(dir.getPath() + File.separator + uri.toString().substring(7).replace("/", File.separator) + ".json"));
+            return deleted;
         } catch (Exception e) {
-            return false;
+            throw new IOException("Failed to delete from disk");
         }
     }
 }

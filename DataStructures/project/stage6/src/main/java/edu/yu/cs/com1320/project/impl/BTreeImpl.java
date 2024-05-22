@@ -152,10 +152,12 @@ public class BTreeImpl<Key extends Comparable<Key>, Value> implements BTree<Key,
             Object temp = alreadyThere.val;
             if (temp == null){
                 try{
-                    if (this.manager.delete(key)){
-                        return null;
+                    if (!this.manager.delete(key)){
+                        alreadyThere.val = val;
+                        return (Value)temp;
                     }
                 } catch (IOException e){
+                    throw new RuntimeException("Delete from disk failed");
                 }
             }
             alreadyThere.val = val;
